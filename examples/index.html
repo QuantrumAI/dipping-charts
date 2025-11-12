@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Chart Demo</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/indicators.css">
+  <link rel="stylesheet" href="css/chart.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <div class="timeframe-group">
+          <button class="btn-timeframe" data-timeframe="1m">1분</button>
+          <button class="btn-timeframe active" data-timeframe="5m">5분</button>
+          <button class="btn-timeframe" data-timeframe="1h">1시간</button>
+          <button class="btn-timeframe" data-timeframe="1d">일</button>
+          <button class="btn-timeframe" data-timeframe="1w">주</button>
+          <button class="btn-timeframe" data-timeframe="1M">월</button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- 보조지표 드롭다운 -->
+        <div class="dropdown">
+          <button class="btn-text" id="indicatorBtn">
+            + 보조지표
+          </button>
+          <div class="dropdown-menu" id="indicatorMenu">
+            <div class="indicator-menu-layout">
+              <!-- 왼쪽: 지표 목록 -->
+              <div class="indicator-list-side">
+                <div class="indicator-category">상단 지표</div>
+                <div class="indicator-item" data-indicator="sma">
+                  <span>이동평균선</span>
+                  <div class="indicator-checkbox"></div>
+                </div>
+                <div class="indicator-item" data-indicator="ema">
+                  <span>지수이동평균</span>
+                  <div class="indicator-checkbox"></div>
+                </div>
+                <div class="indicator-item" data-indicator="bbands">
+                  <span>볼린저 밴드</span>
+                  <div class="indicator-checkbox"></div>
+                </div>
+                <div class="indicator-category">하단 지표</div>
+                <div class="indicator-item" data-indicator="rsi">
+                  <span>RSI</span>
+                  <div class="indicator-checkbox"></div>
+                </div>
+                <div class="indicator-item" data-indicator="macd">
+                  <span>MACD</span>
+                  <div class="indicator-checkbox"></div>
+                </div>
+              </div>
+
+              <!-- 오른쪽: 설정 영역 -->
+              <div class="indicator-settings-side" id="indicatorSettingsSide">
+                <div class="indicator-empty-state">
+                  지표를 선택하세요
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 그리기 드롭다운 -->
+        <div class="dropdown">
+          <button class="btn-text" id="drawingBtn">
+            <span class="tossface">✏️</span> 그리기
+          </button>
+          <div class="dropdown-menu" id="drawingMenu">
+            <button class="dropdown-item" id="trendLineToolBtn">
+              <span class="item-icon tossface">📏</span>
+              <span>추세선</span>
+            </button>
+            <button class="dropdown-item" id="horizontalLineToolBtn">
+              <span class="item-icon tossface">➖</span>
+              <span>수평선</span>
+            </button>
+            <button class="dropdown-item" id="verticalLineToolBtn">
+              <span class="item-icon">|</span>
+              <span>수직선</span>
+            </button>
+            <button class="dropdown-item" id="rectangleToolBtn">
+              <span class="item-icon tossface">▭</span>
+              <span>사각형</span>
+            </button>
+            <button class="dropdown-item" id="fibRetracementToolBtn">
+              <span class="item-icon">Φ</span>
+              <span>피보나치</span>
+            </button>
+            <button class="dropdown-item" id="textToolBtn">
+              <span class="item-icon">T</span>
+              <span>텍스트</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <button class="btn-delete" id="removeAllLineToolsBtn">전체 삭제</button>
+      </div>
+    </div>
+
+    <div id="chart"></div>
+
+    <!-- 텍스트 입력 모달 -->
+    <div class="modal-overlay" id="textModal">
+      <div class="modal-content">
+        <div class="modal-title">텍스트 입력</div>
+        <input type="text" class="modal-input" id="textInput" placeholder="텍스트를 입력하세요">
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-cancel" id="textModalCancel">취소</button>
+          <button class="modal-btn modal-btn-confirm" id="textModalConfirm">확인</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+      <!-- 선 두께 조절 -->
+      <button class="context-menu-btn" data-action="decrease-width" data-tooltip="선 얇게">−</button>
+      <div class="width-display" id="widthDisplay">2</div>
+      <button class="context-menu-btn" data-action="increase-width" data-tooltip="선 두껍게">+</button>
+
+      <div class="context-menu-separator"></div>
+
+      <!-- 색상 선택기 -->
+      <div class="color-picker-dropdown">
+        <button class="color-current-btn" id="colorCurrentBtn" data-tooltip="색상 변경">
+          <div class="color-current-display" id="colorCurrentDisplay" style="background: #2962FF;"></div>
+        </button>
+        <div class="color-palette" id="colorPalette">
+          <button class="color-option" data-color="#000000" style="background: #000000;"></button>
+          <button class="color-option" data-color="#ef4444" style="background: #ef4444;"></button>
+          <button class="color-option" data-color="#2962FF" style="background: #2962FF;"></button>
+          <button class="color-option" data-color="#22c55e" style="background: #22c55e;"></button>
+          <button class="color-option" data-color="#eab308" style="background: #eab308;"></button>
+          <button class="color-option" data-color="#a855f7" style="background: #a855f7;"></button>
+          <button class="color-option" data-color="#f97316" style="background: #f97316;"></button>
+        </div>
+      </div>
+
+      <div class="context-menu-separator"></div>
+
+      <!-- 텍스트 수정 버튼 -->
+      <button class="context-menu-btn" data-action="edit-text" data-tooltip="텍스트 수정">T</button>
+
+      <div class="context-menu-separator"></div>
+
+      <!-- 삭제 버튼 -->
+      <button class="context-menu-btn danger" data-action="delete" data-tooltip="삭제"><span class="tossface">🗑</span></button>
+    </div>
+
+  </div>
+
+  <script src="../lib/lightweight-charts.standalone.production.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

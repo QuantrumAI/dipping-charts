@@ -1,0 +1,87 @@
+{
+  "name": "dipping-charts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dipping 자체 구현 차트 라이브러리 - 기술적 지표 및 그리기 도구 포함",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react/index.js",
+      "types": "./dist/react/index.d.ts"
+    },
+    "./react/style.css": "./src/react/FullFeaturedChart.css",
+    "./chart": {
+      "import": "./dist/chart/index.js",
+      "types": "./dist/chart/index.d.ts"
+    },
+    "./indicators": {
+      "import": "./dist/indicators/index.js",
+      "types": "./dist/indicators/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "examples",
+    "lib",
+    "src/react/FullFeaturedChart.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "demo": "vite --config vite.config.demo.ts",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "lightweight-charts": "^3.8.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "lightweight-charts": "^3.8.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vite-plugin-dts": "^3.7.0"
+  },
+  "keywords": [
+    "dipping",
+    "tradingview",
+    "lightweight-charts",
+    "technical-indicators",
+    "charting",
+    "trading",
+    "education"
+  ],
+  "author": "QuantrumAI",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "sideEffects": [
+    "*.css",
+    "src/react/index.ts",
+    "src/react/FullFeaturedChart.tsx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuantrumAI/dipping-charts"
+  },
+  "homepage": "https://github.com/QuantrumAI/dipping-charts"
+}
