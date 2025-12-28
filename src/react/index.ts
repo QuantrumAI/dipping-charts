@@ -15,4 +15,12 @@ export type { UseLineToolsOptions } from './hooks/useLineTools';
 
 // 타입 (메인 패키지에서 재export)
 export type { CandleData, TimeFrame, ChartOptions } from '../types';
-export type { IndicatorType, LineToolType, IndicatorConfigs } from './types';
+export type {
+  IndicatorType,
+  LineToolType,
+  IndicatorConfigs,
+  TimeFrame as ChartTimeFrame,
+  MarketSession,
+  TimeframeAvailability,
+  PriceLine,
+} from './types';
