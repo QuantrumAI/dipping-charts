@@ -5,51 +5,29 @@ import { useLineTools } from './hooks/useLineTools';
 import { useShiftSnap } from './hooks/useShiftSnap';
 import { IndicatorSettings } from './components/IndicatorSettings';
 import type { CandleData } from '../types';
-import type { FullFeaturedChartProps, TimeFrame, IndicatorConfigs, IndicatorType } from './types';
+import type { FullFeaturedChartProps, TimeFrame, IndicatorConfigs, IndicatorType, TimeframeAvailability } from './types';
 import './FullFeaturedChart.css';
 
 const DEFAULT_COLORS = ['#26a69a', '#ef5350', '#2196f3', '#ff6f00', '#ab47bc', '#66bb6a', '#ffa726', '#42a5f5'];
 
-const TIME_INTERVALS: Record<TimeFrame, number> = {
-  '1m': 60,
-  '5m': 300,
-  '1h': 3600,
-  '1d': 86400,
-  '1w': 604800,
-  '1M': 2592000,
+// 타임프레임 표시 설정
+const TIMEFRAME_CONFIG: { value: TimeFrame; label: string }[] = [
+  { value: '1m', label: '1분' },
+  { value: '5m', label: '5분' },
+  { value: '15m', label: '15분' },
+  { value: '30m', label: '30분' },
+  { value: '1h', label: '1시간' },
+  { value: '1d', label: '일' },
+  { value: '1w', label: '주' },
+  { value: '1M', label: '월' },
+];
+
+// 기본 타임프레임 가용성 (모든 타임프레임 활성화)
+const DEFAULT_TIMEFRAME_AVAILABILITY: TimeframeAvailability = {
+  enabled: ['1m', '5m', '15m', '30m', '1h', '1d', '1w', '1M'],
+  disabled: [],
+  currentSession: 'regular',
 };
-
-function generateMockData(timeFrame: TimeFrame, count: number): CandleData[] {
-  const candles: CandleData[] = [];
-  const interval = TIME_INTERVALS[timeFrame];
-  const now = Math.floor(Date.now() / 1000);
-  let currentPrice = 150;
-
-  for (let i = count - 1; i >= 0; i--) {
-    const time = now - (i * interval);
-    const priceChange = currentPrice * (Math.random() * 0.04 - 0.02);
-    currentPrice += priceChange;
-
-    const open = currentPrice;
-    const close = currentPrice + (Math.random() * 4 - 2);
-    const high = Math.max(open, close) + Math.random() * 2;
-    const low = Math.min(open, close) - Math.random() * 2;
-    const volume = Math.floor(Math.random() * 1000000) + 100000;
-
-    candles.push({
-      time,
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume,
-    });
-
-    currentPrice = close;
-  }
-
-  return candles;
-}
 
 export function FullFeaturedChart({
   data,
@@ -59,8 +37,17 @@ export function FullFeaturedChart({
   enableTimeframes = true,
   enableIndicators = true,
   enableDrawingTools = true,
+  defaultTimeframe = '5m',
+  timeframeAvailability = DEFAULT_TIMEFRAME_AVAILABILITY,
+  onTimeframeChange,
+  realtimeCandle,
+  loading = false,
+  error = null,
+  symbol,
+  statusBadge,
+  priceLines,
 }: FullFeaturedChartProps) {
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>('5m');
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeframe);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
   const [indicatorDropdownOpen, setIndicatorDropdownOpen] = useState(false);
   const [drawingDropdownOpen, setDrawingDropdownOpen] = useState(false);
@@ -106,14 +93,37 @@ export function FullFeaturedChart({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 데이터 로드
+  // 타임프레임 변경 핸들러
+  const handleTimeframeChange = useCallback((tf: TimeFrame) => {
+    // disabled된 타임프레임은 무시
+    if (timeframeAvailability.disabled.includes(tf)) {
+      return;
+    }
+    setTimeFrame(tf);
+    onTimeframeChange?.(tf);
+  }, [timeframeAvailability.disabled, onTimeframeChange]);
+
+  // 외부 데이터 사용
   useEffect(() => {
     if (data && data.length > 0) {
       setCandleData(data);
-    } else {
-      setCandleData(generateMockData(timeFrame, 200));
     }
-  }, [data, timeFrame]);
+  }, [data]);
+
+  // 실시간 캔들 업데이트
+  useEffect(() => {
+    if (realtimeCandle && candleData.length > 0) {
+      setCandleData(prev => {
+        const lastCandle = prev[prev.length - 1];
+        // 같은 시간의 캔들이면 업데이트
+        if (lastCandle && lastCandle.time === realtimeCandle.time) {
+          return [...prev.slice(0, -1), realtimeCandle];
+        }
+        // 새로운 캔들이면 추가
+        return [...prev, realtimeCandle];
+      });
+    }
+  }, [realtimeCandle]);
 
   // 차트에 데이터 설정 (초기 로드 또는 타임프레임 변경 시에만 fitContent)
   const isInitialLoad = useRef(true);
@@ -131,6 +141,55 @@ export function FullFeaturedChart({
   useEffect(() => {
     applyIndicators(indicatorConfigs, macdColors);
   }, [indicatorConfigs, candleData, applyIndicators, macdColors]);
+
+  // 가격 라인 (평단가 등) 적용
+  const priceLineRefsRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (!candleSeries) return;
+
+    // 기존 가격 라인 제거
+    priceLineRefsRef.current.forEach((line) => {
+      try {
+        candleSeries.removePriceLine(line);
+      } catch (e) {
+        // 이미 제거된 경우 무시
+      }
+    });
+    priceLineRefsRef.current = [];
+
+    // 새 가격 라인 추가
+    if (priceLines && priceLines.length > 0) {
+      priceLines.forEach((priceLine) => {
+        const lineStyleMap: Record<string, number> = {
+          solid: 0, // LineStyle.Solid
+          dashed: 1, // LineStyle.Dashed
+          dotted: 3, // LineStyle.Dotted
+        };
+
+        const line = candleSeries.createPriceLine({
+          price: priceLine.price,
+          color: priceLine.color || '#FF9800',
+          lineWidth: (priceLine.lineWidth || 2) as 1 | 2 | 3 | 4,
+          lineStyle: lineStyleMap[priceLine.lineStyle || 'dashed'] || 1,
+          lineVisible: true,
+          axisLabelVisible: priceLine.axisLabelVisible !== false,
+          title: priceLine.label || '',
+        });
+        priceLineRefsRef.current.push(line);
+      });
+    }
+
+    return () => {
+      // 컴포넌트 언마운트 시 가격 라인 제거
+      priceLineRefsRef.current.forEach((line) => {
+        try {
+          candleSeries?.removePriceLine(line);
+        } catch (e) {
+          // 무시
+        }
+      });
+    };
+  }, [candleSeries, priceLines]);
 
   // 지표 체크박스 토글
   const toggleIndicator = useCallback((indicator: IndicatorType) => {
@@ -320,24 +379,35 @@ export function FullFeaturedChart({
   }, [indicatorDropdownOpen, drawingDropdownOpen, contextMenuOpen, colorPaletteOpen]);
 
   return (
-    <div className={`container ${className}`} ref={containerRef}>
+    <div
+      className={`container ${className}`}
+      ref={containerRef}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+    >
       {/* 헤더 */}
       <div className="header">
         <div className="header-left">
           {enableTimeframes && (
             <div className="timeframe-group">
-              {(['1m', '5m', '1h', '1d', '1w', '1M'] as TimeFrame[]).map(tf => (
-                <button
-                  key={tf}
-                  className={`btn-timeframe ${timeFrame === tf ? 'active' : ''}`}
-                  onClick={() => setTimeFrame(tf)}
-                >
-                  {tf === '1m' ? '1분' : tf === '5m' ? '5분' : tf === '1h' ? '1시간' :
-                   tf === '1d' ? '일' : tf === '1w' ? '주' : '월'}
-                </button>
-              ))}
+              {TIMEFRAME_CONFIG.map(({ value: tf, label }) => {
+                const isDisabled = timeframeAvailability.disabled.includes(tf);
+                const isActive = timeFrame === tf;
+                return (
+                  <button
+                    key={tf}
+                    className={`btn-timeframe ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                    onClick={() => handleTimeframeChange(tf)}
+                    disabled={isDisabled}
+                    title={isDisabled ? '현재 시간대에서 사용할 수 없습니다' : undefined}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           )}
+          {symbol && <span className="chart-symbol">{symbol}</span>}
+          {statusBadge}
         </div>
 
         <div className="header-right">
@@ -462,12 +532,37 @@ export function FullFeaturedChart({
       </div>
 
       {/* 차트 */}
-      <div
-        ref={chartRef}
-        style={{ width: '100%', height: `${height}px` }}
-        onContextMenu={showContextMenu}
-        onDoubleClick={handleChartDoubleClick}
-      />
+      <div className="chart-wrapper" style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+        <div
+          ref={chartRef}
+          style={{ width: '100%', height: '100%' }}
+          onContextMenu={showContextMenu}
+          onDoubleClick={handleChartDoubleClick}
+        />
+
+        {/* 로딩 오버레이 */}
+        {loading && (
+          <div className="chart-overlay loading-overlay">
+            <div className="loading-spinner"></div>
+            <span>차트 데이터 로딩 중...</span>
+          </div>
+        )}
+
+        {/* 에러 오버레이 */}
+        {error && (
+          <div className="chart-overlay error-overlay">
+            <span className="error-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 데이터 없음 오버레이 */}
+        {!loading && !error && candleData.length === 0 && (
+          <div className="chart-overlay empty-overlay">
+            <span>차트 데이터가 없습니다</span>
+          </div>
+        )}
+      </div>
 
       {/* 텍스트 모달 */}
       {textModalOpen && (

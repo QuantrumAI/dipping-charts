@@ -16,8 +16,6 @@ body {
 }
 
 .container {
-  max-width: 1400px;
-  margin: 0 auto;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -31,6 +29,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0; /* 헤더가 줄어들지 않도록 */
 }
 
 .header-left {
@@ -745,5 +744,74 @@ body {
   font-size: 13px;
 }
 
+
+/* Disabled 타임프레임 버튼 */
+.btn-timeframe.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-timeframe.disabled:hover {
+  background: transparent;
+  color: #ccc;
+}
+
+/* 차트 심볼 표시 */
+.chart-symbol {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-left: 12px;
+}
+
+/* 차트 오버레이 */
+.chart-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 10;
+}
+
+.loading-overlay .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-overlay span,
+.empty-overlay span {
+  color: #666;
+  font-size: 14px;
+}
+
+.error-overlay {
+  background: rgba(254, 242, 242, 0.95);
+}
+
+.error-overlay .error-icon {
+  font-size: 24px;
+}
+
+.error-overlay span {
+  color: #dc2626;
+  font-size: 14px;
+}
 
 /* 커스텀 텍스트 입력 모달 */
