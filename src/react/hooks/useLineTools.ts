@@ -2,8 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { IChartApi } from 'lightweight-charts';
 import type { LineToolType, LineTool, LineToolOptions } from '../types';
 
-declare const LightweightCharts: any;
-
 export interface UseLineToolsOptions {
   onToolFinished?: (tool: LineTool) => void;
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import type { CandleData } from '../../types';
 
+// 전역 LightweightCharts 객체 (커스텀 빌드 - Line Tools 포함)
 declare const LightweightCharts: any;
 
 export interface UseChartOptions {
@@ -10,11 +11,11 @@ export interface UseChartOptions {
 }
 
 export interface UseChartReturn {
-  chartRef: React.RefObject<HTMLDivElement>;
+  chartRef: React.RefObject<HTMLDivElement | null>;
   chart: IChartApi | null;
   candleSeries: ISeriesApi<'Candlestick'> | null;
   volumeSeries: ISeriesApi<'Histogram'> | null;
-  setData: (data: CandleData[]) => void;
+  setData: (data: CandleData[], shouldFit?: boolean) => void;
 }
 
 export function useChart(options: UseChartOptions = {}): UseChartReturn {
@@ -30,13 +31,14 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
   // 차트 초기화
   useEffect(() => {
     if (!chartRef.current) return;
+
+    // 전역 LightweightCharts 객체 확인
     if (typeof LightweightCharts === 'undefined') {
-      console.error('LightweightCharts is not loaded. Please include the standalone script.');
+      console.error('[useChart] LightweightCharts is not loaded. Make sure to include the script in your HTML.');
       return;
     }
 
     const { createChart } = LightweightCharts;
-
     const width = options.width || chartRef.current.clientWidth;
     const height = options.height || 600;
 
@@ -96,18 +98,31 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     setCandleSeries(candleSeriesInstance);
     setVolumeSeries(volumeSeriesInstance);
 
-    // 리사이즈 핸들러
+    // 리사이즈 핸들러 - width와 height 모두 업데이트
     const handleResize = () => {
       if (chartRef.current && chartInstanceRef.current) {
-        chartInstanceRef.current.applyOptions({
-          width: chartRef.current.clientWidth,
-        });
+        const newWidth = chartRef.current.clientWidth;
+        const newHeight = chartRef.current.clientHeight;
+        if (newWidth > 0 && newHeight > 0) {
+          chartInstanceRef.current.applyOptions({
+            width: newWidth,
+            height: newHeight,
+          });
+        }
       }
     };
 
+    // ResizeObserver로 컨테이너 크기 변화 감지 (height 포함)
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(chartRef.current);
+
+    // window resize도 백업으로 유지
     window.addEventListener('resize', handleResize);
 
     return () => {
+      resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       chartInstance.remove();
     };
