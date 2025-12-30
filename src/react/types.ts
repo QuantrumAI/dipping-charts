@@ -111,4 +111,8 @@ export interface FullFeaturedChartProps {
 
   // 가격 라인 (평단가 등)
   priceLines?: PriceLine[];
+
+  // 그리기 도구
+  initialLineTools?: LineTool[];
+  onLineToolsChange?: (tools: LineTool[]) => void;
 }

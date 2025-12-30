@@ -18,6 +18,7 @@ export type { CandleData, TimeFrame, ChartOptions } from '../types';
 export type {
   IndicatorType,
   LineToolType,
+  LineTool,
   IndicatorConfigs,
   TimeFrame as ChartTimeFrame,
   MarketSession,

@@ -4,6 +4,8 @@ import type { LineToolType, LineTool, LineToolOptions } from '../types';
 
 export interface UseLineToolsOptions {
   onToolFinished?: (tool: LineTool) => void;
+  onToolsChange?: (tools: LineTool[]) => void;
+  initialTools?: LineTool[];
 }
 
 export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOptions) {
@@ -16,6 +18,59 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     line: { width: 2, color: '#2962FF' }
   });
   const onToolFinishedRef = useRef(options?.onToolFinished);
+  const onToolsChangeRef = useRef(options?.onToolsChange);
+  const initialToolsLoadedRef = useRef(false);
+
+  // 도구 변경 알림 함수
+  const notifyToolsChange = useCallback(() => {
+    if (onToolsChangeRef.current) {
+      const toolsArray = Array.from(toolsRef.current.values());
+      onToolsChangeRef.current(toolsArray);
+    }
+  }, []);
+
+  // 모든 도구를 배열로 내보내기
+  const exportTools = useCallback((): LineTool[] => {
+    return Array.from(toolsRef.current.values());
+  }, []);
+
+  // 저장된 도구 불러오기
+  const loadTools = useCallback((savedTools: LineTool[]) => {
+    if (!chart || !savedTools || savedTools.length === 0) return;
+
+    // 기존 도구 제거
+    (chart as any).removeAllLineTools();
+    toolsRef.current.clear();
+
+    // 저장된 도구 복원
+    savedTools.forEach(t => {
+      const result = (chart as any).addLineTool(t.toolType, t.points, t.options);
+      if (result && result.ak && result.ak.ji) {
+        const newId = result.ak.ji;
+        toolsRef.current.set(newId, {
+          id: newId,
+          toolType: t.toolType,
+          points: t.points,
+          options: t.options
+        });
+      }
+    });
+
+    setTools(new Map(toolsRef.current));
+    setSelectedToolId(null);
+  }, [chart]);
+
+  // 초기 도구 로드 (차트 준비 후)
+  useEffect(() => {
+    if (!chart || initialToolsLoadedRef.current) return;
+    if (options?.initialTools && options.initialTools.length > 0) {
+      initialToolsLoadedRef.current = true;
+      // 차트가 완전히 준비될 때까지 약간 대기
+      setTimeout(() => {
+        loadTools(options.initialTools!);
+      }, 100);
+    }
+  }, [chart, options?.initialTools, loadTools]);
 
   // Line Tool 활성화
   const activateTool = useCallback((toolType: LineToolType) => {
@@ -64,7 +119,8 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     setTools(new Map());
     setSelectedToolId(null);
     setActiveToolType(null);
-  }, [chart]);
+    notifyToolsChange();
+  }, [chart, notifyToolsChange]);
 
   // 선택된 도구 삭제
   const removeSelectedTool = useCallback(() => {
@@ -91,7 +147,8 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
 
     setTools(new Map(toolsRef.current));
     setSelectedToolId(remainingTools.length > 0 ? Array.from(toolsRef.current.keys())[0] : null);
-  }, [chart, selectedToolId]);
+    notifyToolsChange();
+  }, [chart, selectedToolId, notifyToolsChange]);
 
   // 선 두께 변경
   const updateLineWidth = useCallback((newWidth: number) => {
@@ -254,10 +311,11 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     setSelectedToolId(lastNewId);
   }, [chart, selectedToolId]);
 
-  // Update callback ref
+  // Update callback refs
   useEffect(() => {
     onToolFinishedRef.current = options?.onToolFinished;
-  }, [options?.onToolFinished]);
+    onToolsChangeRef.current = options?.onToolsChange;
+  }, [options?.onToolFinished, options?.onToolsChange]);
 
   // LineTools 이벤트 구독
   useEffect(() => {
@@ -287,6 +345,8 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
         if (onToolFinishedRef.current) {
           onToolFinishedRef.current(lineTool);
         }
+        // Notify tools change
+        notifyToolsChange();
       }
     };
 
@@ -317,5 +377,7 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     updateColor,
     updateText,
     setSelectedToolId,
+    exportTools,
+    loadTools,
   };
 }

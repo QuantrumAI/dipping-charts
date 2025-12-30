@@ -128,9 +128,31 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     };
   }, [options.width, options.height]);
 
+  // 이전 데이터의 첫번째 timestamp 저장 (타임존 변경 시 오프셋 계산용)
+  const prevFirstTimestampRef = useRef<number | null>(null);
+
   // 데이터 설정 함수
   const setData = (data: CandleData[], shouldFit: boolean = false) => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartInstanceRef.current) return;
+
+    // 현재 visible range 저장 (shouldFit이 false일 때만)
+    let savedRange: { from: number; to: number } | null = null;
+
+    if (!shouldFit && data.length > 0 && prevFirstTimestampRef.current !== null) {
+      try {
+        const visibleRange = chartInstanceRef.current.timeScale().getVisibleLogicalRange();
+        if (visibleRange) {
+          savedRange = { from: visibleRange.from, to: visibleRange.to };
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 첫번째 timestamp 저장
+    if (data.length > 0) {
+      prevFirstTimestampRef.current = data[0].time as number;
+    }
 
     const candleData = data.map(c => ({
       time: c.time as Time,
@@ -149,8 +171,15 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
 
-    if (chartInstanceRef.current && shouldFit) {
+    if (shouldFit) {
       chartInstanceRef.current.timeScale().fitContent();
+    } else if (savedRange) {
+      // 저장된 range 복원 (logical range는 인덱스 기반이라 오프셋 불필요)
+      try {
+        chartInstanceRef.current.timeScale().setVisibleLogicalRange(savedRange);
+      } catch (e) {
+        // ignore
+      }
     }
   };
 

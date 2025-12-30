@@ -46,6 +46,8 @@ export function FullFeaturedChart({
   symbol,
   statusBadge,
   priceLines,
+  initialLineTools,
+  onLineToolsChange,
 }: FullFeaturedChartProps) {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeframe);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
@@ -88,7 +90,11 @@ export function FullFeaturedChart({
     }
   }, []);
 
-  const lineTools = useLineTools(chart, { onToolFinished: handleToolFinished });
+  const lineTools = useLineTools(chart, {
+    onToolFinished: handleToolFinished,
+    onToolsChange: onLineToolsChange,
+    initialTools: initialLineTools,
+  });
   useShiftSnap(chart, candleSeries, candleData);
 
   const containerRef = useRef<HTMLDivElement>(null);
