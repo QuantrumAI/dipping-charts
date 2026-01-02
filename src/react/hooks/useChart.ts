@@ -78,7 +78,7 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
 
     // 거래량 시리즈
     const volumeSeriesInstance = chartInstance.addHistogramSeries({
-      color: '#26a69a',
+      color: '#ef4444',
       priceFormat: { type: 'volume' },
       priceScaleId: '',
     });

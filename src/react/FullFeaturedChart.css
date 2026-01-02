@@ -757,16 +757,15 @@ body {
   color: #ccc;
 }
 
-/* 차트 심볼 표시 */
 .chart-symbol {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin-left: 12px;
 }
 
-/* 차트 오버레이 */
 .chart-overlay {
+
   position: absolute;
   top: 0;
   left: 0;

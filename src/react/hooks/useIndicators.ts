@@ -102,7 +102,7 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
         seriesRef.current.push(signalSeries);
 
         const histSeries = chart.addHistogramSeries({
-          color: '#26a69a',
+          color: '#ef4444',
           priceScaleId: 'macd',
         });
         histSeries.setData(macdData.histogram.map(d => ({ ...d, time: d.time as Time })));

@@ -43,7 +43,7 @@ export function FullFeaturedChart({
   realtimeCandle,
   loading = false,
   error = null,
-  symbol,
+  symbol: _symbol,
   statusBadge,
   priceLines,
   initialLineTools,
@@ -412,7 +412,6 @@ export function FullFeaturedChart({
               })}
             </div>
           )}
-          {symbol && <span className="chart-symbol">{symbol}</span>}
           {statusBadge}
         </div>
 

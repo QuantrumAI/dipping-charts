@@ -47,7 +47,7 @@ export class TradingChart {
 
     // 거래량 시리즈 추가 (하단)
     this.volumeSeries = this.chart.addHistogramSeries({
-      color: '#26a69a',
+      color: '#ef4444',
       priceFormat: {
         type: 'volume',
       },
