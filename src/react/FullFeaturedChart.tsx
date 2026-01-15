@@ -109,24 +109,81 @@ export function FullFeaturedChart({
     onTimeframeChange?.(tf);
   }, [timeframeAvailability.disabled, onTimeframeChange]);
 
-  // 외부 데이터 사용
+  // 외부 데이터 사용 (null/NaN 값 필터링)
   useEffect(() => {
     if (data && data.length > 0) {
-      setCandleData(data);
+      // null/NaN 값이 있는 캔들 필터링
+      const validData = data.filter(c => {
+        // null 체크
+        if (c.time == null || c.open == null || c.high == null || c.low == null || c.close == null) {
+          return false;
+        }
+        // NaN 체크
+        if (isNaN(c.open) || isNaN(c.high) || isNaN(c.low) || isNaN(c.close)) {
+          return false;
+        }
+        // Infinity 체크
+        if (!isFinite(c.open) || !isFinite(c.high) || !isFinite(c.low) || !isFinite(c.close)) {
+          return false;
+        }
+        return true;
+      });
+      if (validData.length !== data.length) {
+        console.warn(`[FullFeaturedChart] Filtered out ${data.length - validData.length} candles with invalid values`);
+      }
+      setCandleData(validData);
     }
   }, [data]);
 
   // 실시간 캔들 업데이트
   useEffect(() => {
+    // null/NaN 값 체크 (lightweight-charts는 null/NaN을 허용하지 않음)
     if (realtimeCandle && candleData.length > 0) {
+      // OHLC 값이 모두 유효한지 확인
+      if (
+        realtimeCandle.time == null ||
+        realtimeCandle.open == null ||
+        realtimeCandle.high == null ||
+        realtimeCandle.low == null ||
+        realtimeCandle.close == null
+      ) {
+        console.warn('[FullFeaturedChart] Skipping realtime candle with null values:', realtimeCandle);
+        return;
+      }
+
+      // NaN/Infinity 체크
+      if (
+        isNaN(realtimeCandle.open) || isNaN(realtimeCandle.high) ||
+        isNaN(realtimeCandle.low) || isNaN(realtimeCandle.close) ||
+        !isFinite(realtimeCandle.open) || !isFinite(realtimeCandle.high) ||
+        !isFinite(realtimeCandle.low) || !isFinite(realtimeCandle.close)
+      ) {
+        console.warn('[FullFeaturedChart] Skipping realtime candle with NaN/Infinity values:', realtimeCandle);
+        return;
+      }
+
       setCandleData(prev => {
         const lastCandle = prev[prev.length - 1];
         // 같은 시간의 캔들이면 업데이트
         if (lastCandle && lastCandle.time === realtimeCandle.time) {
-          return [...prev.slice(0, -1), realtimeCandle];
+          const newData = [...prev.slice(0, -1), realtimeCandle];
+          // 전체 데이터 유효성 재검증
+          return newData.filter(c => {
+            const time = typeof c.time === 'number' ? c.time : Number(c.time);
+            return Number.isFinite(time) && time > 0 &&
+                   Number.isFinite(c.open) && Number.isFinite(c.high) &&
+                   Number.isFinite(c.low) && Number.isFinite(c.close);
+          });
         }
         // 새로운 캔들이면 추가
-        return [...prev, realtimeCandle];
+        const newData = [...prev, realtimeCandle];
+        // 전체 데이터 유효성 재검증
+        return newData.filter(c => {
+          const time = typeof c.time === 'number' ? c.time : Number(c.time);
+          return Number.isFinite(time) && time > 0 &&
+                 Number.isFinite(c.open) && Number.isFinite(c.high) &&
+                 Number.isFinite(c.low) && Number.isFinite(c.close);
+        });
       });
     }
   }, [realtimeCandle]);
@@ -137,7 +194,31 @@ export function FullFeaturedChart({
   useEffect(() => {
     if (candleData.length > 0) {
       const shouldFit = isInitialLoad.current || prevTimeFrameRef.current !== timeFrame;
-      setChartData(candleData, shouldFit);
+      try {
+        // 추가 유효성 검사: setChartData 호출 전에 데이터 재검증
+        const validatedData = candleData.filter(c => {
+          const timeNum = typeof c.time === 'number' ? c.time : Number(c.time);
+          return (
+            timeNum > 0 &&
+            Number.isFinite(timeNum) &&
+            Number.isFinite(c.open) &&
+            Number.isFinite(c.high) &&
+            Number.isFinite(c.low) &&
+            Number.isFinite(c.close) &&
+            c.open != null &&
+            c.high != null &&
+            c.low != null &&
+            c.close != null
+          );
+        });
+        if (validatedData.length > 0) {
+          setChartData(validatedData, shouldFit);
+        } else {
+          console.warn('[FullFeaturedChart] No valid data to display after final validation');
+        }
+      } catch (err) {
+        console.error('[FullFeaturedChart] Error setting chart data:', err);
+      }
       isInitialLoad.current = false;
       prevTimeFrameRef.current = timeFrame;
     }
@@ -187,11 +268,18 @@ export function FullFeaturedChart({
 
     return () => {
       // 컴포넌트 언마운트 시 가격 라인 제거
-      priceLineRefsRef.current.forEach((line) => {
+      // 차트가 이미 파괴된 경우를 대비해 lines를 먼저 복사하고 ref 초기화
+      const linesToRemove = [...priceLineRefsRef.current];
+      priceLineRefsRef.current = [];
+
+      linesToRemove.forEach((line) => {
         try {
-          candleSeries?.removePriceLine(line);
+          // 차트가 아직 유효한지 확인 (options()가 존재하면 유효)
+          if (candleSeries && typeof candleSeries.options === 'function') {
+            candleSeries.removePriceLine(line);
+          }
         } catch (e) {
-          // 무시
+          // 차트가 이미 파괴된 경우 무시
         }
       });
     };

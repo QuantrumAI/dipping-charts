@@ -23,6 +23,7 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const isDestroyedRef = useRef<boolean>(false);
 
   const [chart, setChart] = useState<IChartApi | null>(null);
   const [candleSeries, setCandleSeries] = useState<ISeriesApi<'Candlestick'> | null>(null);
@@ -37,6 +38,9 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
       console.error('[useChart] LightweightCharts is not loaded. Make sure to include the script in your HTML.');
       return;
     }
+
+    // 초기화 시 파괴 플래그 리셋
+    isDestroyedRef.current = false;
 
     const { createChart } = LightweightCharts;
     const width = options.width || chartRef.current.clientWidth;
@@ -100,14 +104,21 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
 
     // 리사이즈 핸들러 - width와 height 모두 업데이트
     const handleResize = () => {
+      // 차트가 파괴된 경우 무시
+      if (isDestroyedRef.current) return;
+
       if (chartRef.current && chartInstanceRef.current) {
         const newWidth = chartRef.current.clientWidth;
         const newHeight = chartRef.current.clientHeight;
         if (newWidth > 0 && newHeight > 0) {
-          chartInstanceRef.current.applyOptions({
-            width: newWidth,
-            height: newHeight,
-          });
+          try {
+            chartInstanceRef.current.applyOptions({
+              width: newWidth,
+              height: newHeight,
+            });
+          } catch (e) {
+            // 차트가 이미 파괴된 경우 무시
+          }
         }
       }
     };
@@ -122,9 +133,28 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      // 파괴 플래그 먼저 설정 (다른 effect들이 참조하지 않도록)
+      isDestroyedRef.current = true;
+
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
-      chartInstance.remove();
+
+      // refs 정리
+      chartInstanceRef.current = null;
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+
+      // state 정리
+      setChart(null);
+      setCandleSeries(null);
+      setVolumeSeries(null);
+
+      // 차트 파괴
+      try {
+        chartInstance.remove();
+      } catch (e) {
+        // 이미 파괴된 경우 무시
+      }
     };
   }, [options.width, options.height]);
 
@@ -133,7 +163,15 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
 
   // 데이터 설정 함수
   const setData = (data: CandleData[], shouldFit: boolean = false) => {
+    // 차트가 파괴된 경우 무시
+    if (isDestroyedRef.current) return;
     if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartInstanceRef.current) return;
+
+    // 데이터가 없거나 빈 배열이면 무시 (에러 방지)
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('[useChart] No data provided, skipping setData');
+      return;
+    }
 
     // 현재 visible range 저장 (shouldFit이 false일 때만)
     let savedRange: { from: number; to: number } | null = null;
@@ -149,12 +187,41 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
       }
     }
 
-    // 첫번째 timestamp 저장
-    if (data.length > 0) {
-      prevFirstTimestampRef.current = data[0].time as number;
+    // null/NaN 값이 있는 캔들 필터링 (lightweight-charts는 null/NaN을 허용하지 않음)
+    const validData = data.filter(c => {
+      // null 체크
+      if (c.time == null || c.open == null || c.high == null || c.low == null || c.close == null) {
+        return false;
+      }
+      // NaN 체크 (time 포함!)
+      const timeNum = typeof c.time === 'number' ? c.time : Number(c.time);
+      if (isNaN(timeNum) || isNaN(c.open) || isNaN(c.high) || isNaN(c.low) || isNaN(c.close)) {
+        return false;
+      }
+      // 유효하지 않은 값 체크 (Infinity)
+      if (!isFinite(timeNum) || !isFinite(c.open) || !isFinite(c.high) || !isFinite(c.low) || !isFinite(c.close)) {
+        return false;
+      }
+      // time이 0 이하면 무효
+      if (timeNum <= 0) {
+        return false;
+      }
+      return true;
+    });
+
+    if (validData.length !== data.length) {
+      console.warn(`[useChart] Filtered out ${data.length - validData.length} candles with null values`);
     }
 
-    const candleData = data.map(c => ({
+    if (validData.length === 0) {
+      console.warn('[useChart] No valid candle data to display');
+      return;
+    }
+
+    // 첫번째 timestamp 저장
+    prevFirstTimestampRef.current = validData[0].time as number;
+
+    const candleData = validData.map(c => ({
       time: c.time as Time,
       open: c.open,
       high: c.high,
@@ -162,23 +229,61 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
       close: c.close,
     }));
 
-    const volumeData = data.map(c => ({
+    const volumeData = validData.map(c => ({
       time: c.time as Time,
-      value: c.volume,
+      value: Number.isFinite(c.volume) ? c.volume : 0,  // NaN/Infinity/null/undefined 모두 0으로 처리
       color: c.close >= c.open ? '#ef444466' : '#3b82f666',
     }));
 
-    candleSeriesRef.current.setData(candleData);
-    volumeSeriesRef.current.setData(volumeData);
+    try {
+      // 차트가 파괴된 경우 재확인 (race condition 방지)
+      if (isDestroyedRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) {
+        return;
+      }
 
-    if (shouldFit) {
-      chartInstanceRef.current.timeScale().fitContent();
-    } else if (savedRange) {
-      // 저장된 range 복원 (logical range는 인덱스 기반이라 오프셋 불필요)
-      try {
-        chartInstanceRef.current.timeScale().setVisibleLogicalRange(savedRange);
-      } catch (e) {
-        // ignore
+      // 최종 검증: null AND NaN 체크 (NaN !== null이므로 별도 체크 필요)
+      const finalCandleData = candleData.filter(c => {
+        const time = typeof c.time === 'number' ? c.time : Number(c.time);
+        return (
+          Number.isFinite(time) && time > 0 &&
+          Number.isFinite(c.open) &&
+          Number.isFinite(c.high) &&
+          Number.isFinite(c.low) &&
+          Number.isFinite(c.close)
+        );
+      });
+      const finalVolumeData = volumeData.filter(v => {
+        const time = typeof v.time === 'number' ? v.time : Number(v.time);
+        return Number.isFinite(time) && time > 0 && Number.isFinite(v.value);
+      });
+
+      if (finalCandleData.length === 0) {
+        console.warn('[useChart] No valid candle data after final null check');
+        return;
+      }
+
+      // 각 setData 호출 전 ref 체크 (unmount 중 호출 방지)
+      if (candleSeriesRef.current && !isDestroyedRef.current) {
+        candleSeriesRef.current.setData(finalCandleData);
+      }
+      if (volumeSeriesRef.current && !isDestroyedRef.current) {
+        volumeSeriesRef.current.setData(finalVolumeData);
+      }
+
+      if (shouldFit && chartInstanceRef.current && !isDestroyedRef.current) {
+        chartInstanceRef.current.timeScale().fitContent();
+      } else if (savedRange && chartInstanceRef.current && !isDestroyedRef.current) {
+        // 저장된 range 복원 (logical range는 인덱스 기반이라 오프셋 불필요)
+        try {
+          chartInstanceRef.current.timeScale().setVisibleLogicalRange(savedRange);
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      // 차트가 파괴된 경우 에러 무시 (정상 unmount)
+      if (!isDestroyedRef.current) {
+        console.error('[useChart] Error in setData:', e, 'Data sample:', candleData.slice(0, 3));
       }
     }
   };

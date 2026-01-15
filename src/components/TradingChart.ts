@@ -90,8 +90,30 @@ export class TradingChart {
    * 캔들 데이터 설정
    */
   setData(candles: CandleData[]) {
+    // null 값 필터링 (lightweight-charts는 null을 허용하지 않음)
+    const validCandles = candles.filter(candle =>
+      candle.time != null &&
+      candle.open != null &&
+      candle.high != null &&
+      candle.low != null &&
+      candle.close != null &&
+      !isNaN(candle.open) &&
+      !isNaN(candle.high) &&
+      !isNaN(candle.low) &&
+      !isNaN(candle.close)
+    );
+
+    if (validCandles.length !== candles.length) {
+      console.warn(`[TradingChart] Filtered out ${candles.length - validCandles.length} candles with null/invalid values`);
+    }
+
+    if (validCandles.length === 0) {
+      console.warn('[TradingChart] No valid candle data to display');
+      return;
+    }
+
     // 캔들 데이터 변환
-    const candleData: CandlestickData[] = candles.map(candle => ({
+    const candleData: CandlestickData[] = validCandles.map(candle => ({
       time: candle.time as any,
       open: candle.open,
       high: candle.high,
@@ -100,9 +122,9 @@ export class TradingChart {
     }));
 
     // 거래량 데이터 변환
-    const volumeData: HistogramData[] = candles.map(candle => ({
+    const volumeData: HistogramData[] = validCandles.map(candle => ({
       time: candle.time as any,
-      value: candle.volume,
+      value: candle.volume ?? 0,
       color: candle.close >= candle.open ? '#ef444466' : '#3b82f666',
     }));
 
