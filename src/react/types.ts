@@ -115,4 +115,10 @@ export interface FullFeaturedChartProps {
   // 그리기 도구
   initialLineTools?: LineTool[];
   onLineToolsChange?: (tools: LineTool[]) => void;
+
+  /**
+   * 그리기 도구 클릭 시 호출되는 콜백
+   * false 반환 시 그리기 도구 활성화가 취소됨 (로그인 체크 등에 활용)
+   */
+  onDrawingToolClick?: () => boolean;
 }

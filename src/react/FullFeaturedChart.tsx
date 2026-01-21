@@ -48,6 +48,7 @@ export function FullFeaturedChart({
   priceLines,
   initialLineTools,
   onLineToolsChange,
+  onDrawingToolClick,
 }: FullFeaturedChartProps) {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeframe);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
@@ -579,6 +580,10 @@ export function FullFeaturedChart({
           {enableDrawingTools && (
             <div className="dropdown">
               <button className="btn-text" onClick={() => {
+                // 로그인 체크 콜백이 있고, false를 반환하면 드롭다운 열지 않음
+                if (onDrawingToolClick && !onDrawingToolClick()) {
+                  return;
+                }
                 setDrawingDropdownOpen(!drawingDropdownOpen);
                 setIndicatorDropdownOpen(false);
               }}>
