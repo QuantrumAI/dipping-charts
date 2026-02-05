@@ -6,6 +6,9 @@ export interface IndicatorConfig {
   thickness: number;
   source: 'close' | 'open' | 'high' | 'low';
   value: number;
+  // RSI 전용: 과매수/과매도 기준선
+  overbought?: number;
+  oversold?: number;
 }
 
 export interface BollingerBandsConfig extends IndicatorConfig {
@@ -20,6 +23,9 @@ export interface MACDConfig {
   slowPeriod: number;
   signalPeriod: number;
   thickness: number;
+  // 히스토그램 양/음 색상
+  histUpColor?: string;
+  histDownColor?: string;
 }
 
 export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bbands';
@@ -116,6 +122,24 @@ export interface FullFeaturedChartProps {
   // 그리기 도구
   initialLineTools?: LineTool[];
   onLineToolsChange?: (tools: LineTool[]) => void;
+
+  // 볼륨 표시 여부
+  showVolume?: boolean;
+
+  // 지표 설정 localStorage 키 (설정 시 자동 저장/복원)
+  indicatorStorageKey?: string;
+
+  // 지표 설정 외부 연동 (백엔드 저장 등)
+  initialIndicatorState?: {
+    configs: IndicatorConfigs;
+    checked: IndicatorType[];
+    macdColors: { line: string; signal: string };
+  };
+  onIndicatorStateChange?: (state: {
+    configs: IndicatorConfigs;
+    checked: IndicatorType[];
+    macdColors: { line: string; signal: string };
+  }) => void;
 
   /**
    * 그리기 도구 클릭 시 호출되는 콜백

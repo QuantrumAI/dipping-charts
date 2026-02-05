@@ -164,10 +164,17 @@
 
 .dropdown-menu.show {
   display: block;
+  animation: fadeInDown 0.15s ease-out;
 }
 
 #indicatorMenu.show {
   display: flex;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-item {
@@ -216,6 +223,12 @@
 
 .modal-overlay.show {
   display: flex;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
@@ -331,6 +344,12 @@
 
 .context-menu.show {
   display: flex;
+  animation: fadeInScale 0.15s ease-out;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .context-menu.dragging {
@@ -442,6 +461,7 @@
 
 .color-palette.show {
   display: flex;
+  animation: fadeInDown 0.15s ease-out;
 }
 
 .color-option {
@@ -625,6 +645,7 @@
 
 .color-palette-popup.show {
   display: block;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .color-palette-title {
@@ -806,6 +827,181 @@
 .error-overlay span {
   color: #dc2626;
   font-size: 14px;
+}
+
+/* 활성 그리기 도구 배지 */
+.active-tool-badge {
+  padding: 4px 10px;
+  background: #e8f2ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  animation: fadeIn 0.15s ease-out;
+  white-space: nowrap;
+}
+
+/* ====== 반응형 디자인 ====== */
+
+/* 태블릿 가로 (1024px) */
+@media (max-width: 1024px) {
+  #indicatorMenu {
+    width: 480px;
+  }
+
+  .indicator-list-side {
+    width: 140px;
+  }
+}
+
+/* 태블릿 세로 (768px) */
+@media (max-width: 768px) {
+  .header {
+    padding: 6px 8px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .header-left {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .timeframe-group {
+    flex-shrink: 0;
+  }
+
+  .btn-timeframe {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .btn-text {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  .btn-delete {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  #indicatorMenu {
+    width: calc(100vw - 32px);
+    max-width: 480px;
+    right: -8px;
+  }
+
+  .indicator-list-side {
+    width: 120px;
+  }
+
+  .indicator-settings-side {
+    padding: 12px;
+  }
+
+  .modal-content {
+    min-width: auto;
+    width: calc(100vw - 40px);
+    max-width: 360px;
+  }
+}
+
+/* 모바일 (480px) */
+@media (max-width: 480px) {
+  .header {
+    padding: 4px 6px;
+  }
+
+  .btn-timeframe {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .btn-text {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .btn-delete {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .active-tool-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  #indicatorMenu {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .indicator-menu-layout {
+    flex-direction: column;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .indicator-list-side {
+    width: 100%;
+    max-height: 160px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+
+  .indicator-category {
+    width: 100%;
+    padding: 8px 12px 4px;
+  }
+
+  .indicator-item {
+    padding: 8px 12px;
+  }
+
+  .indicator-settings-side {
+    border-radius: 0;
+    max-height: calc(70vh - 160px);
+  }
+
+  .context-menu {
+    padding: 4px;
+  }
+
+  .context-menu-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .width-display {
+    min-width: 28px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .dropdown-menu:not(#indicatorMenu) {
+    right: -6px;
+    min-width: 160px;
+  }
 }
 
 /* 커스텀 텍스트 입력 모달 */

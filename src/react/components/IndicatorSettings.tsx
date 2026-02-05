@@ -134,7 +134,7 @@ export function IndicatorSettings({
         <div className="indicator-settings-title">{info.title}</div>
         <div className="indicator-settings-desc">{info.desc}</div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>색상</div>
               <div
@@ -151,7 +151,31 @@ export function IndicatorSettings({
                 onChange={(e) => onConfigChange(indicator, [{ ...rsiConfig, value: parseInt(e.target.value) || 14 }])}
                 min="1"
                 max="500"
-                style={{ width: '100%', padding: 8, border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 14, height: 40 }}
+                style={{ width: '100%', padding: 8, border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 14, height: 40, boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>과매도</div>
+              <input
+                type="number"
+                value={rsiConfig.oversold ?? 30}
+                onChange={(e) => onConfigChange(indicator, [{ ...rsiConfig, oversold: parseInt(e.target.value) || 30 }])}
+                min="0"
+                max="100"
+                style={{ width: '100%', padding: 8, border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 14, height: 40, boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>과매수</div>
+              <input
+                type="number"
+                value={rsiConfig.overbought ?? 70}
+                onChange={(e) => onConfigChange(indicator, [{ ...rsiConfig, overbought: parseInt(e.target.value) || 70 }])}
+                min="0"
+                max="100"
+                style={{ width: '100%', padding: 8, border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 14, height: 40, boxSizing: 'border-box' }}
               />
             </div>
           </div>
@@ -192,6 +216,26 @@ export function IndicatorSettings({
                 className="period-color-picker"
                 style={{ background: macdColors.signal, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
                 onClick={(e) => handleColorClick(e, undefined, 'macd-signal')}
+              />
+            </div>
+          </div>
+
+          {/* 히스토그램 색상 */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>양봉</div>
+              <div
+                className="period-color-picker"
+                style={{ background: macdConfig.histUpColor || '#26a69a', width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
+                onClick={(e) => handleColorClick(e, undefined, 'hist-up')}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>음봉</div>
+              <div
+                className="period-color-picker"
+                style={{ background: macdConfig.histDownColor || '#ef5350', width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
+                onClick={(e) => handleColorClick(e, undefined, 'hist-down')}
               />
             </div>
           </div>
@@ -245,6 +289,22 @@ export function IndicatorSettings({
           <ColorPalettePopup
             currentColor={macdColors.signal}
             onSelect={(color) => onMacdColorsChange({ ...macdColors, signal: color })}
+            onClose={() => setColorPaletteOpen(null)}
+            position={colorPaletteOpen.position}
+          />
+        )}
+        {colorPaletteOpen && colorPaletteOpen.type === 'hist-up' && (
+          <ColorPalettePopup
+            currentColor={macdConfig.histUpColor || '#26a69a'}
+            onSelect={(color) => onConfigChange(indicator, [{ ...macdConfig, histUpColor: color }])}
+            onClose={() => setColorPaletteOpen(null)}
+            position={colorPaletteOpen.position}
+          />
+        )}
+        {colorPaletteOpen && colorPaletteOpen.type === 'hist-down' && (
+          <ColorPalettePopup
+            currentColor={macdConfig.histDownColor || '#ef5350'}
+            onSelect={(color) => onConfigChange(indicator, [{ ...macdConfig, histDownColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
           />
@@ -421,7 +481,7 @@ export function IndicatorSettings({
             ...(config as IndicatorConfig[]),
             {
               color: DEFAULT_COLORS[nextColorIdx],
-              thickness: 1,
+              thickness: 2,
               source: 'close' as const,
               value: info.defaultValue
             }

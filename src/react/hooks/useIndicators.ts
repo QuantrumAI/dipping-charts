@@ -29,6 +29,16 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
 
     const filterIndicatorData = filterValidIndicatorPoints;
 
+    // 동적 scaleMargins 계산 (RSI/MACD 겹침 방지)
+    const hasRsi = configs.rsi.length > 0;
+    const hasMacd = configs.macd.length > 0;
+    const rsiMargins = hasRsi && hasMacd
+      ? { top: 0.65, bottom: 0.2 }
+      : { top: 0.75, bottom: 0 };
+    const macdMargins = hasRsi && hasMacd
+      ? { top: 0.85, bottom: 0 }
+      : { top: 0.75, bottom: 0 };
+
     // SMA
     configs.sma.forEach((config: IndicatorConfig) => {
       const data = calculateSMA(candles, { period: config.value });
@@ -38,6 +48,8 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
           color: config.color,
           lineWidth: config.thickness as any,
           title: `SMA ${config.value}`,
+          lastValueVisible: false,
+          priceLineVisible: false,
         });
         series.setData(validData.map(d => ({ ...d, time: d.time as Time })));
         seriesRef.current.push(series);
@@ -53,6 +65,8 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
           color: config.color,
           lineWidth: config.thickness as any,
           title: `EMA ${config.value}`,
+          lastValueVisible: false,
+          priceLineVisible: false,
         });
         series.setData(validData.map(d => ({ ...d, time: d.time as Time })));
         seriesRef.current.push(series);
@@ -69,11 +83,24 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
           lineWidth: config.thickness as any,
           title: `RSI ${config.value}`,
           priceScaleId: 'rsi',
+          lastValueVisible: false,
+          priceLineVisible: false,
         });
         series.priceScale().applyOptions({
-          scaleMargins: { top: 0.8, bottom: 0 },
+          scaleMargins: rsiMargins,
         });
         series.setData(validData.map(d => ({ ...d, time: d.time as Time })));
+        // RSI 과매수/과매도 기준선
+        const oversold = config.oversold ?? 30;
+        const overbought = config.overbought ?? 70;
+        series.createPriceLine({
+          price: oversold, color: 'rgba(150,150,150,0.4)', lineWidth: 1, lineStyle: 1,
+          axisLabelVisible: false, title: '', lineVisible: true,
+        });
+        series.createPriceLine({
+          price: overbought, color: 'rgba(150,150,150,0.4)', lineWidth: 1, lineStyle: 1,
+          axisLabelVisible: false, title: '', lineVisible: true,
+        });
         seriesRef.current.push(series);
       }
     });
@@ -95,9 +122,11 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
           lineWidth: config.thickness as any,
           title: 'MACD',
           priceScaleId: 'macd',
+          lastValueVisible: false,
+          priceLineVisible: false,
         });
         macdSeries.priceScale().applyOptions({
-          scaleMargins: { top: 0.8, bottom: 0 },
+          scaleMargins: macdMargins,
         });
         macdSeries.setData(validMacd.map(d => ({ ...d, time: d.time as Time })));
         seriesRef.current.push(macdSeries);
@@ -108,6 +137,8 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
             lineWidth: config.thickness as any,
             title: 'Signal',
             priceScaleId: 'macd',
+            lastValueVisible: false,
+            priceLineVisible: false,
           });
           signalSeries.setData(validSignal.map(d => ({ ...d, time: d.time as Time })));
           seriesRef.current.push(signalSeries);
@@ -115,10 +146,15 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
 
         if (validHistogram.length > 0) {
           const histSeries = chart.addHistogramSeries({
-            color: '#ef4444',
             priceScaleId: 'macd',
           });
-          histSeries.setData(validHistogram.map(d => ({ ...d, time: d.time as Time })));
+          const histUp = config.histUpColor || '#26a69a';
+          const histDown = config.histDownColor || '#ef5350';
+          histSeries.setData(validHistogram.map(d => ({
+            time: d.time as Time,
+            value: d.value,
+            color: d.value >= 0 ? histUp : histDown,
+          })));
           seriesRef.current.push(histSeries);
         }
       }
@@ -134,8 +170,12 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
       if (validUpper.length > 0) {
         const upperSeries = chart.addLineSeries({
           color: config.upperColor || '#F23645',
-          lineWidth: config.thickness as any,
+          lineWidth: 1,
+          lineStyle: 1,
           title: 'BB Upper',
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          priceLineVisible: false,
         });
         upperSeries.setData(validUpper.map(d => ({ ...d, time: d.time as Time })));
         seriesRef.current.push(upperSeries);
@@ -144,7 +184,10 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
           const middleSeries = chart.addLineSeries({
             color: config.middleColor || '#2962FF',
             lineWidth: config.thickness as any,
+            lineStyle: 0,
             title: 'BB Middle',
+            lastValueVisible: false,
+            priceLineVisible: false,
           });
           middleSeries.setData(validMiddle.map(d => ({ ...d, time: d.time as Time })));
           seriesRef.current.push(middleSeries);
@@ -153,8 +196,12 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
         if (validLower.length > 0) {
           const lowerSeries = chart.addLineSeries({
             color: config.lowerColor || '#089981',
-            lineWidth: config.thickness as any,
+            lineWidth: 1,
+            lineStyle: 1,
             title: 'BB Lower',
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
           });
           lowerSeries.setData(validLower.map(d => ({ ...d, time: d.time as Time })));
           seriesRef.current.push(lowerSeries);

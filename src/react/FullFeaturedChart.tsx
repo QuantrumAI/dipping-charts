@@ -30,6 +30,53 @@ const DEFAULT_TIMEFRAME_AVAILABILITY: TimeframeAvailability = {
   currentSession: 'regular',
 };
 
+// 그리기 도구 한국어 라벨
+const TOOL_LABELS: Record<string, string> = {
+  TrendLine: '추세선',
+  HorizontalLine: '수평선',
+  VerticalLine: '수직선',
+  Rectangle: '사각형',
+  FibRetracement: '피보나치',
+  Text: '텍스트',
+};
+
+// localStorage 지표 설정 저장/복원
+function saveIndicatorState(key: string, configs: IndicatorConfigs, checked: Set<IndicatorType>, macdColors: { line: string; signal: string }) {
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      configs,
+      checked: Array.from(checked),
+      macdColors,
+    }));
+  } catch (e) {
+    // localStorage 오류 무시
+  }
+}
+
+function loadIndicatorState(key: string): { configs: IndicatorConfigs; checked: Set<IndicatorType>; macdColors: { line: string; signal: string } } | null {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    return {
+      configs: parsed.configs,
+      checked: new Set(parsed.checked),
+      macdColors: parsed.macdColors,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// 컨텍스트 메뉴 위치를 뷰포트 내에 고정
+function clampToViewport(x: number, y: number, menuWidth = 280, menuHeight = 50): { x: number; y: number } {
+  const pad = 8;
+  return {
+    x: Math.max(pad, Math.min(x, window.innerWidth - menuWidth - pad)),
+    y: Math.max(pad, Math.min(y, window.innerHeight - menuHeight - pad)),
+  };
+}
+
 export function FullFeaturedChart({
   data,
   width,
@@ -50,6 +97,10 @@ export function FullFeaturedChart({
   initialLineTools,
   onLineToolsChange,
   onDrawingToolClick,
+  showVolume = true,
+  indicatorStorageKey,
+  initialIndicatorState,
+  onIndicatorStateChange,
 }: FullFeaturedChartProps) {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeframe);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
@@ -57,37 +108,48 @@ export function FullFeaturedChart({
   const [drawingDropdownOpen, setDrawingDropdownOpen] = useState(false);
   const [textModalOpen, setTextModalOpen] = useState(false);
   const [textModalValue, setTextModalValue] = useState('');
+  const [textModalMode, setTextModalMode] = useState<'add' | 'edit'>('add');
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const [contextMenuDragging, setContextMenuDragging] = useState(false);
   const [contextMenuDragOffset, setContextMenuDragOffset] = useState({ x: 0, y: 0 });
   const [colorPaletteOpen, setColorPaletteOpen] = useState(false);
 
-  // 지표 설정
-  const [indicatorConfigs, setIndicatorConfigs] = useState<IndicatorConfigs>({
-    sma: [],
-    ema: [],
-    rsi: [],
-    macd: [],
-    bbands: []
-  });
-  const [checkedIndicators, setCheckedIndicators] = useState<Set<IndicatorType>>(new Set());
-  const [selectedIndicator, setSelectedIndicator] = useState<IndicatorType | null>(null);
-  const [macdColors, setMacdColors] = useState({ line: '#2962FF', signal: '#FF6D00' });
+  // 지표 설정 (우선순위: initialIndicatorState > localStorage > 기본값)
+  const localState = indicatorStorageKey ? loadIndicatorState(indicatorStorageKey) : null;
+  const restoredConfigs = initialIndicatorState?.configs || localState?.configs || { sma: [], ema: [], rsi: [], macd: [], bbands: [] };
+  const restoredChecked = initialIndicatorState?.checked
+    ? new Set(initialIndicatorState.checked)
+    : localState?.checked || new Set<IndicatorType>();
+  const restoredMacdColors = initialIndicatorState?.macdColors || localState?.macdColors || { line: '#2962FF', signal: '#FF6D00' };
 
-  const { chartRef, chart, candleSeries, setData: setChartData } = useChart({ width, height });
+  const [indicatorConfigs, setIndicatorConfigs] = useState<IndicatorConfigs>(restoredConfigs);
+  const [checkedIndicators, setCheckedIndicators] = useState<Set<IndicatorType>>(restoredChecked);
+  const [selectedIndicator, setSelectedIndicator] = useState<IndicatorType | null>(null);
+  const [macdColors, setMacdColors] = useState(restoredMacdColors);
+
+  const { chartRef, chart, candleSeries, volumeSeries, setData: setChartData } = useChart({ width, height });
   const { applyIndicators } = useIndicators(chart, candleData);
 
-  // Line tools with auto context menu
+  // 볼륨 시리즈 표시/숨김
+  useEffect(() => {
+    if (volumeSeries) {
+      try {
+        volumeSeries.applyOptions({
+          visible: showVolume,
+        });
+      } catch (e) {
+        // 차트 파괴 시 무시
+      }
+    }
+  }, [volumeSeries, showVolume]);
+
+  // Line tools with auto context menu (뷰포트 바운더리 적용)
   const handleToolFinished = useCallback((_tool: any) => {
-    // Auto-show context menu when tool is finished
-    // Position at center of screen
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setContextMenuPos({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      });
+      const pos = clampToViewport(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      setContextMenuPos(pos);
       setContextMenuOpen(true);
     }
   }, []);
@@ -99,11 +161,13 @@ export function FullFeaturedChart({
   });
   useShiftSnap(chart, candleSeries, candleData);
 
+  // Undo 히스토리 (도구 삭제 복원용)
+  const undoStackRef = useRef<{ toolType: string; points: any[]; options: any }[]>([]);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 타임프레임 변경 핸들러
   const handleTimeframeChange = useCallback((tf: TimeFrame) => {
-    // disabled된 타임프레임은 무시
     if (timeframeAvailability.disabled.includes(tf)) {
       return;
     }
@@ -163,6 +227,26 @@ export function FullFeaturedChart({
     applyIndicators(indicatorConfigs, macdColors);
   }, [indicatorConfigs, candleData, applyIndicators, macdColors]);
 
+  // 지표 설정 자동 저장 (localStorage + 외부 콜백)
+  const indicatorInitRef = useRef(false);
+  useEffect(() => {
+    // 초기 마운트 시에는 콜백 호출 안 함 (로드한 값을 다시 저장하지 않도록)
+    if (!indicatorInitRef.current) {
+      indicatorInitRef.current = true;
+      return;
+    }
+    if (indicatorStorageKey) {
+      saveIndicatorState(indicatorStorageKey, indicatorConfigs, checkedIndicators, macdColors);
+    }
+    if (onIndicatorStateChange) {
+      onIndicatorStateChange({
+        configs: indicatorConfigs,
+        checked: Array.from(checkedIndicators) as IndicatorType[],
+        macdColors,
+      });
+    }
+  }, [indicatorConfigs, checkedIndicators, macdColors, indicatorStorageKey, onIndicatorStateChange]);
+
   // 가격 라인 (평단가 등) 적용
   const priceLineRefsRef = useRef<any[]>([]);
   useEffect(() => {
@@ -201,14 +285,11 @@ export function FullFeaturedChart({
     }
 
     return () => {
-      // 컴포넌트 언마운트 시 가격 라인 제거
-      // 차트가 이미 파괴된 경우를 대비해 lines를 먼저 복사하고 ref 초기화
       const linesToRemove = [...priceLineRefsRef.current];
       priceLineRefsRef.current = [];
 
       linesToRemove.forEach((line) => {
         try {
-          // 차트가 아직 유효한지 확인 (options()가 존재하면 유효)
           if (candleSeries && typeof candleSeries.options === 'function') {
             candleSeries.removePriceLine(line);
           }
@@ -232,9 +313,10 @@ export function FullFeaturedChart({
       // 기본 설정 추가
       if (indicator === 'sma' || indicator === 'ema') {
         const periods = [5, 20, 60, 120];
+        const thicknesses = [2, 2, 1, 1];
         const configs = periods.map((period, idx) => ({
           color: DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
-          thickness: 1,
+          thickness: thicknesses[idx] || 1,
           source: 'close' as const,
           value: period
         }));
@@ -280,19 +362,28 @@ export function FullFeaturedChart({
     setCheckedIndicators(newChecked);
   }, [checkedIndicators]);
 
-  // 컨텍스트 메뉴 표시
+  // 컨텍스트 메뉴 표시 (뷰포트 바운더리 적용)
   const showContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     if (lineTools.selectedToolId) {
-      setContextMenuPos({ x: e.clientX, y: e.clientY });
+      const pos = clampToViewport(e.clientX, e.clientY);
+      setContextMenuPos(pos);
       setContextMenuOpen(true);
     }
   }, [lineTools.selectedToolId]);
 
-  // ESC 키 핸들러
+  // 키보드 핸들러 (ESC + Ctrl+Z undo)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // input/textarea 내부에서는 무시
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
       if (e.key === 'Escape') {
+        if (textModalOpen) {
+          setTextModalOpen(false);
+          return;
+        }
         if (contextMenuOpen && lineTools.selectedToolId) {
           lineTools.removeSelectedTool();
           setContextMenuOpen(false);
@@ -300,32 +391,54 @@ export function FullFeaturedChart({
           lineTools.activateTool(lineTools.activeToolType);
         }
       }
+
+      // Ctrl+Z: 마지막 삭제된 도구 복원
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        const lastDeleted = undoStackRef.current.pop();
+        if (lastDeleted && chart) {
+          (chart as any).addLineTool(lastDeleted.toolType, lastDeleted.points, lastDeleted.options);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [contextMenuOpen, lineTools]);
+  }, [contextMenuOpen, lineTools, textModalOpen, chart]);
 
   // 텍스트 도구 활성화
   const handleTextToolClick = () => {
     setTextModalValue('Label');
+    setTextModalMode('add');
     setTextModalOpen(true);
   };
 
   // 텍스트 모달 확인
   const handleTextModalConfirm = () => {
     if (textModalValue) {
-      lineTools.addTextTool(textModalValue);
+      if (textModalMode === 'edit') {
+        lineTools.updateText(textModalValue);
+      } else {
+        lineTools.addTextTool(textModalValue);
+      }
     }
     setTextModalOpen(false);
     setTextModalValue('');
   };
 
+  // 텍스트 편집 (모달 사용 - prompt() 대체)
+  const openTextEditModal = useCallback(() => {
+    if (lineTools.selectedTool?.toolType === 'Text') {
+      setTextModalValue(lineTools.selectedTool.options.text?.value || '');
+      setTextModalMode('edit');
+      setTextModalOpen(true);
+    }
+  }, [lineTools.selectedTool]);
+
   // 컨텍스트 메뉴 드래그 시작
   const handleContextMenuMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.context-menu-btn') ||
         (e.target as HTMLElement).closest('.color-picker-dropdown')) {
-      return; // 버튼 클릭 시에는 드래그 안 함
+      return;
     }
 
     setContextMenuDragging(true);
@@ -360,14 +473,26 @@ export function FullFeaturedChart({
     };
   }, [contextMenuDragging, contextMenuDragOffset]);
 
-  // 더블클릭으로 텍스트 편집
+  // 더블클릭으로 텍스트 편집 (모달 사용)
   const handleChartDoubleClick = useCallback((_e: React.MouseEvent) => {
     if (lineTools.selectedTool && lineTools.selectedTool.toolType === 'Text') {
-      const newText = prompt('텍스트 수정', lineTools.selectedTool.options.text?.value || '');
-      if (newText) {
-        lineTools.updateText(newText);
-      }
+      setTextModalValue(lineTools.selectedTool.options.text?.value || '');
+      setTextModalMode('edit');
+      setTextModalOpen(true);
     }
+  }, [lineTools]);
+
+  // 도구 삭제 시 undo 스택에 저장
+  const handleRemoveSelectedTool = useCallback(() => {
+    if (lineTools.selectedTool) {
+      undoStackRef.current.push({
+        toolType: lineTools.selectedTool.toolType,
+        points: lineTools.selectedTool.points,
+        options: lineTools.selectedTool.options,
+      });
+    }
+    lineTools.removeSelectedTool();
+    setContextMenuOpen(false);
   }, [lineTools]);
 
   // Outside click 핸들러 (드롭다운 및 컨텍스트 메뉴 닫기)
@@ -438,6 +563,13 @@ export function FullFeaturedChart({
         </div>
 
         <div className="header-right">
+          {/* 활성 그리기 도구 피드백 배지 */}
+          {enableDrawingTools && lineTools.activeToolType && (
+            <div className="active-tool-badge">
+              {TOOL_LABELS[lineTools.activeToolType] || lineTools.activeToolType} 그리는 중
+            </div>
+          )}
+
           {enableIndicators && (
             <div className="dropdown">
               <button className="btn-text" onClick={() => {
@@ -595,11 +727,11 @@ export function FullFeaturedChart({
         )}
       </div>
 
-      {/* 텍스트 모달 */}
+      {/* 텍스트 모달 (추가 + 수정 공용) */}
       {textModalOpen && (
-        <div className="modal-overlay" onClick={() => setTextModalOpen(false)}>
+        <div className="modal-overlay show" onClick={() => setTextModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">텍스트 입력</div>
+            <div className="modal-title">{textModalMode === 'edit' ? '텍스트 수정' : '텍스트 입력'}</div>
             <input
               type="text"
               className="modal-input"
@@ -659,14 +791,11 @@ export function FullFeaturedChart({
           {lineTools.selectedTool.toolType === 'Text' && (
             <>
               <div className="context-menu-separator"></div>
-              <button className="context-menu-btn" onClick={() => {
-                const newText = prompt('텍스트 수정', lineTools.selectedTool?.options.text?.value || '');
-                if (newText) lineTools.updateText(newText);
-              }}>T</button>
+              <button className="context-menu-btn" onClick={openTextEditModal}>T</button>
             </>
           )}
           <div className="context-menu-separator"></div>
-          <button className="context-menu-btn danger" onClick={() => { lineTools.removeSelectedTool(); setContextMenuOpen(false); }}>🗑️</button>
+          <button className="context-menu-btn danger" onClick={handleRemoveSelectedTool}>🗑️</button>
         </div>
       )}
     </div>
