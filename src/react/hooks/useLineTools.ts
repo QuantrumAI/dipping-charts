@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { IChartApi } from 'lightweight-charts';
 import type { LineToolType, LineTool, LineToolOptions } from '../types';
+import { getToolIdFromResult } from '../../utils/getToolId';
 
 export interface UseLineToolsOptions {
   onToolFinished?: (tool: LineTool) => void;
@@ -29,6 +30,65 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     }
   }, []);
 
+  // --- 공통 리빌드 헬퍼 ---
+
+  /** 모든 도구를 제거 후 재생성하며, targetToolId의 옵션만 updatedOptions로 교체 */
+  const rebuildToolsWithUpdate = useCallback((targetToolId: string, updatedOptions: LineToolOptions): string | null => {
+    if (!chart) return null;
+
+    const allTools = Array.from(toolsRef.current.values());
+    (chart as any).removeAllLineTools();
+    toolsRef.current.clear();
+
+    let newTargetId: string | null = null;
+    allTools.forEach(t => {
+      const opts = t.id === targetToolId ? updatedOptions : t.options;
+      const result = (chart as any).addLineTool(t.toolType, t.points, opts);
+      const newId = getToolIdFromResult(result);
+      if (newId) {
+        toolsRef.current.set(newId, {
+          id: newId,
+          toolType: t.toolType,
+          points: t.points,
+          options: opts
+        });
+        if (t.id === targetToolId) {
+          newTargetId = newId;
+        }
+      }
+    });
+
+    setTools(new Map(toolsRef.current));
+    return newTargetId;
+  }, [chart]);
+
+  /** excludeId를 제외한 도구들만 재생성 */
+  const rebuildToolsExcluding = useCallback((excludeId: string): string | null => {
+    if (!chart) return null;
+
+    const allTools = Array.from(toolsRef.current.values());
+    const remainingTools = allTools.filter(t => t.id !== excludeId);
+
+    (chart as any).removeAllLineTools();
+    toolsRef.current.clear();
+
+    remainingTools.forEach(t => {
+      const result = (chart as any).addLineTool(t.toolType, t.points, t.options);
+      const newId = getToolIdFromResult(result);
+      if (newId) {
+        toolsRef.current.set(newId, {
+          id: newId,
+          toolType: t.toolType,
+          points: t.points,
+          options: t.options
+        });
+      }
+    });
+
+    setTools(new Map(toolsRef.current));
+    return toolsRef.current.size > 0 ? Array.from(toolsRef.current.keys())[0] : null;
+  }, [chart]);
+
   // 모든 도구를 배열로 내보내기
   const exportTools = useCallback((): LineTool[] => {
     return Array.from(toolsRef.current.values());
@@ -45,8 +105,8 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
     // 저장된 도구 복원
     savedTools.forEach(t => {
       const result = (chart as any).addLineTool(t.toolType, t.points, t.options);
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
+      const newId = getToolIdFromResult(result);
+      if (newId) {
         toolsRef.current.set(newId, {
           id: newId,
           toolType: t.toolType,
@@ -125,30 +185,10 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
   // 선택된 도구 삭제
   const removeSelectedTool = useCallback(() => {
     if (!chart || !selectedToolId) return;
-
-    const allTools = Array.from(toolsRef.current.values());
-    const remainingTools = allTools.filter(t => t.id !== selectedToolId);
-
-    (chart as any).removeAllLineTools();
-    toolsRef.current.clear();
-
-    remainingTools.forEach(t => {
-      const result = (chart as any).addLineTool(t.toolType, t.points, t.options);
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
-        toolsRef.current.set(newId, {
-          id: newId,
-          toolType: t.toolType,
-          points: t.points,
-          options: t.options
-        });
-      }
-    });
-
-    setTools(new Map(toolsRef.current));
-    setSelectedToolId(remainingTools.length > 0 ? Array.from(toolsRef.current.keys())[0] : null);
+    const firstRemainingId = rebuildToolsExcluding(selectedToolId);
+    setSelectedToolId(firstRemainingId);
     notifyToolsChange();
-  }, [chart, selectedToolId, notifyToolsChange]);
+  }, [chart, selectedToolId, rebuildToolsExcluding, notifyToolsChange]);
 
   // 선 두께 변경
   const updateLineWidth = useCallback((newWidth: number) => {
@@ -180,34 +220,10 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
       };
     }
 
-    const allTools = Array.from(toolsRef.current.values());
-    (chart as any).removeAllLineTools();
-    toolsRef.current.clear();
-
-    let lastNewId: string | null = null;
-    allTools.forEach(t => {
-      const opts = t.id === selectedToolId ? updatedOptions : t.options;
-      const result = (chart as any).addLineTool(t.toolType, t.points, opts);
-
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
-        toolsRef.current.set(newId, {
-          id: newId,
-          toolType: t.toolType,
-          points: t.points,
-          options: opts
-        });
-
-        if (t.id === selectedToolId) {
-          lastNewId = newId;
-        }
-      }
-    });
-
-    setTools(new Map(toolsRef.current));
-    setSelectedToolId(lastNewId);
+    const newId = rebuildToolsWithUpdate(selectedToolId, updatedOptions);
+    setSelectedToolId(newId);
     lastOptionsRef.current.line = { ...lastOptionsRef.current.line, width: newWidth, color: lastOptionsRef.current.line?.color || '#2962FF' };
-  }, [chart, selectedToolId]);
+  }, [chart, selectedToolId, rebuildToolsWithUpdate]);
 
   // 색상 변경
   const updateColor = useCallback((color: string) => {
@@ -239,34 +255,10 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
       };
     }
 
-    const allTools = Array.from(toolsRef.current.values());
-    (chart as any).removeAllLineTools();
-    toolsRef.current.clear();
-
-    let lastNewId: string | null = null;
-    allTools.forEach(t => {
-      const opts = t.id === selectedToolId ? updatedOptions : t.options;
-      const result = (chart as any).addLineTool(t.toolType, t.points, opts);
-
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
-        toolsRef.current.set(newId, {
-          id: newId,
-          toolType: t.toolType,
-          points: t.points,
-          options: opts
-        });
-
-        if (t.id === selectedToolId) {
-          lastNewId = newId;
-        }
-      }
-    });
-
-    setTools(new Map(toolsRef.current));
-    setSelectedToolId(lastNewId);
+    const newId = rebuildToolsWithUpdate(selectedToolId, updatedOptions);
+    setSelectedToolId(newId);
     lastOptionsRef.current.line = { ...lastOptionsRef.current.line, color, width: lastOptionsRef.current.line?.width || 2 };
-  }, [chart, selectedToolId]);
+  }, [chart, selectedToolId, rebuildToolsWithUpdate]);
 
   // 텍스트 수정
   const updateText = useCallback((newText: string) => {
@@ -283,33 +275,9 @@ export function useLineTools(chart: IChartApi | null, options?: UseLineToolsOpti
       }
     };
 
-    const allTools = Array.from(toolsRef.current.values());
-    (chart as any).removeAllLineTools();
-    toolsRef.current.clear();
-
-    let lastNewId: string | null = null;
-    allTools.forEach(t => {
-      const opts = t.id === selectedToolId ? updatedOptions : t.options;
-      const result = (chart as any).addLineTool(t.toolType, t.points, opts);
-
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
-        toolsRef.current.set(newId, {
-          id: newId,
-          toolType: t.toolType,
-          points: t.points,
-          options: opts
-        });
-
-        if (t.id === selectedToolId) {
-          lastNewId = newId;
-        }
-      }
-    });
-
-    setTools(new Map(toolsRef.current));
-    setSelectedToolId(lastNewId);
-  }, [chart, selectedToolId]);
+    const newId = rebuildToolsWithUpdate(selectedToolId, updatedOptions);
+    setSelectedToolId(newId);
+  }, [chart, selectedToolId, rebuildToolsWithUpdate]);
 
   // Update callback refs
   useEffect(() => {

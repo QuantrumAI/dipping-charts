@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import type { CandleData } from '../../types';
+import { filterValidCandles } from '../../utils/validateCandle';
 
 // 전역 LightweightCharts 객체 (커스텀 빌드 - Line Tools 포함)
 declare const LightweightCharts: any;
@@ -187,31 +188,7 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
       }
     }
 
-    // null/NaN 값이 있는 캔들 필터링 (lightweight-charts는 null/NaN을 허용하지 않음)
-    const validData = data.filter(c => {
-      // null 체크
-      if (c.time == null || c.open == null || c.high == null || c.low == null || c.close == null) {
-        return false;
-      }
-      // NaN 체크 (time 포함!)
-      const timeNum = typeof c.time === 'number' ? c.time : Number(c.time);
-      if (isNaN(timeNum) || isNaN(c.open) || isNaN(c.high) || isNaN(c.low) || isNaN(c.close)) {
-        return false;
-      }
-      // 유효하지 않은 값 체크 (Infinity)
-      if (!isFinite(timeNum) || !isFinite(c.open) || !isFinite(c.high) || !isFinite(c.low) || !isFinite(c.close)) {
-        return false;
-      }
-      // time이 0 이하면 무효
-      if (timeNum <= 0) {
-        return false;
-      }
-      return true;
-    });
-
-    if (validData.length !== data.length) {
-      console.warn(`[useChart] Filtered out ${data.length - validData.length} candles with null values`);
-    }
+    const validData = filterValidCandles(data, 'useChart');
 
     if (validData.length === 0) {
       console.warn('[useChart] No valid candle data to display');
@@ -241,16 +218,11 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
         return;
       }
 
-      // 최종 검증: null AND NaN 체크 (NaN !== null이므로 별도 체크 필요)
       const finalCandleData = candleData.filter(c => {
         const time = typeof c.time === 'number' ? c.time : Number(c.time);
-        return (
-          Number.isFinite(time) && time > 0 &&
-          Number.isFinite(c.open) &&
-          Number.isFinite(c.high) &&
-          Number.isFinite(c.low) &&
-          Number.isFinite(c.close)
-        );
+        return Number.isFinite(time) && time > 0 &&
+               Number.isFinite(c.open) && Number.isFinite(c.high) &&
+               Number.isFinite(c.low) && Number.isFinite(c.close);
       });
       const finalVolumeData = volumeData.filter(v => {
         const time = typeof v.time === 'number' ? v.time : Number(v.time);

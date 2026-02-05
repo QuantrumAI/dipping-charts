@@ -6,6 +6,7 @@ import { useShiftSnap } from './hooks/useShiftSnap';
 import { IndicatorSettings } from './components/IndicatorSettings';
 import type { CandleData } from '../types';
 import type { FullFeaturedChartProps, TimeFrame, IndicatorConfigs, IndicatorType, TimeframeAvailability } from './types';
+import { isValidCandle, filterValidCandles } from '../utils/validateCandle';
 import './FullFeaturedChart.css';
 
 const DEFAULT_COLORS = ['#26a69a', '#ef5350', '#2196f3', '#ff6f00', '#ab47bc', '#66bb6a', '#ffa726', '#42a5f5'];
@@ -113,78 +114,25 @@ export function FullFeaturedChart({
   // 외부 데이터 사용 (null/NaN 값 필터링)
   useEffect(() => {
     if (data && data.length > 0) {
-      // null/NaN 값이 있는 캔들 필터링
-      const validData = data.filter(c => {
-        // null 체크
-        if (c.time == null || c.open == null || c.high == null || c.low == null || c.close == null) {
-          return false;
-        }
-        // NaN 체크
-        if (isNaN(c.open) || isNaN(c.high) || isNaN(c.low) || isNaN(c.close)) {
-          return false;
-        }
-        // Infinity 체크
-        if (!isFinite(c.open) || !isFinite(c.high) || !isFinite(c.low) || !isFinite(c.close)) {
-          return false;
-        }
-        return true;
-      });
-      if (validData.length !== data.length) {
-        console.warn(`[FullFeaturedChart] Filtered out ${data.length - validData.length} candles with invalid values`);
-      }
+      const validData = filterValidCandles(data, 'FullFeaturedChart');
       setCandleData(validData);
     }
   }, [data]);
 
   // 실시간 캔들 업데이트
   useEffect(() => {
-    // null/NaN 값 체크 (lightweight-charts는 null/NaN을 허용하지 않음)
     if (realtimeCandle && candleData.length > 0) {
-      // OHLC 값이 모두 유효한지 확인
-      if (
-        realtimeCandle.time == null ||
-        realtimeCandle.open == null ||
-        realtimeCandle.high == null ||
-        realtimeCandle.low == null ||
-        realtimeCandle.close == null
-      ) {
-        console.warn('[FullFeaturedChart] Skipping realtime candle with null values:', realtimeCandle);
-        return;
-      }
-
-      // NaN/Infinity 체크
-      if (
-        isNaN(realtimeCandle.open) || isNaN(realtimeCandle.high) ||
-        isNaN(realtimeCandle.low) || isNaN(realtimeCandle.close) ||
-        !isFinite(realtimeCandle.open) || !isFinite(realtimeCandle.high) ||
-        !isFinite(realtimeCandle.low) || !isFinite(realtimeCandle.close)
-      ) {
-        console.warn('[FullFeaturedChart] Skipping realtime candle with NaN/Infinity values:', realtimeCandle);
+      if (!isValidCandle(realtimeCandle)) {
+        console.warn('[FullFeaturedChart] Skipping realtime candle with invalid values:', realtimeCandle);
         return;
       }
 
       setCandleData(prev => {
         const lastCandle = prev[prev.length - 1];
-        // 같은 시간의 캔들이면 업데이트
-        if (lastCandle && lastCandle.time === realtimeCandle.time) {
-          const newData = [...prev.slice(0, -1), realtimeCandle];
-          // 전체 데이터 유효성 재검증
-          return newData.filter(c => {
-            const time = typeof c.time === 'number' ? c.time : Number(c.time);
-            return Number.isFinite(time) && time > 0 &&
-                   Number.isFinite(c.open) && Number.isFinite(c.high) &&
-                   Number.isFinite(c.low) && Number.isFinite(c.close);
-          });
-        }
-        // 새로운 캔들이면 추가
-        const newData = [...prev, realtimeCandle];
-        // 전체 데이터 유효성 재검증
-        return newData.filter(c => {
-          const time = typeof c.time === 'number' ? c.time : Number(c.time);
-          return Number.isFinite(time) && time > 0 &&
-                 Number.isFinite(c.open) && Number.isFinite(c.high) &&
-                 Number.isFinite(c.low) && Number.isFinite(c.close);
-        });
+        const newData = lastCandle && lastCandle.time === realtimeCandle.time
+          ? [...prev.slice(0, -1), realtimeCandle]
+          : [...prev, realtimeCandle];
+        return newData.filter(isValidCandle);
       });
     }
   }, [realtimeCandle]);
@@ -196,22 +144,7 @@ export function FullFeaturedChart({
     if (candleData.length > 0) {
       const shouldFit = isInitialLoad.current || prevTimeFrameRef.current !== timeFrame;
       try {
-        // 추가 유효성 검사: setChartData 호출 전에 데이터 재검증
-        const validatedData = candleData.filter(c => {
-          const timeNum = typeof c.time === 'number' ? c.time : Number(c.time);
-          return (
-            timeNum > 0 &&
-            Number.isFinite(timeNum) &&
-            Number.isFinite(c.open) &&
-            Number.isFinite(c.high) &&
-            Number.isFinite(c.low) &&
-            Number.isFinite(c.close) &&
-            c.open != null &&
-            c.high != null &&
-            c.low != null &&
-            c.close != null
-          );
-        });
+        const validatedData = candleData.filter(isValidCandle);
         if (validatedData.length > 0) {
           setChartData(validatedData, shouldFit);
         } else {

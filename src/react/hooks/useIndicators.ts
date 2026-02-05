@@ -9,6 +9,7 @@ import {
   calculateMACD,
   calculateBollingerBands,
 } from '../../indicators';
+import { filterValidIndicatorPoints } from '../../utils/validateCandle';
 
 export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
   const seriesRef = useRef<ISeriesApi<any>[]>([]);
@@ -26,15 +27,7 @@ export function useIndicators(chart: IChartApi | null, candles: CandleData[]) {
     });
     seriesRef.current = [];
 
-    // 인디케이터 데이터 필터링 헬퍼 함수 (null/NaN 값 제거)
-    const filterIndicatorData = (data: Array<{ time: number; value: number }>) => {
-      return data.filter(d =>
-        d.time != null &&
-        d.value != null &&
-        !isNaN(d.value) &&
-        isFinite(d.value)
-      );
-    };
+    const filterIndicatorData = filterValidIndicatorPoints;
 
     // SMA
     configs.sma.forEach((config: IndicatorConfig) => {

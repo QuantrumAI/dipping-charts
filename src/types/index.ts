@@ -13,7 +13,7 @@ export interface CandleData {
 /**
  * 시간봉 타입
  */
-export type TimeFrame = '1m' | '5m' | '1h' | '1d' | '1w' | '1M' | '1y';
+export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '1d' | '1w' | '1M' | '1y';
 
 /**
  * 차트 옵션

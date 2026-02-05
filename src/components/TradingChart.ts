@@ -1,5 +1,6 @@
 import { createChart, IChartApi, ISeriesApi, CandlestickData, HistogramData } from 'lightweight-charts';
 import { CandleData, ChartOptions } from '../types';
+import { filterValidCandles } from '../utils/validateCandle';
 
 /**
  * TradingView 스타일 차트
@@ -90,22 +91,7 @@ export class TradingChart {
    * 캔들 데이터 설정
    */
   setData(candles: CandleData[]) {
-    // null 값 필터링 (lightweight-charts는 null을 허용하지 않음)
-    const validCandles = candles.filter(candle =>
-      candle.time != null &&
-      candle.open != null &&
-      candle.high != null &&
-      candle.low != null &&
-      candle.close != null &&
-      !isNaN(candle.open) &&
-      !isNaN(candle.high) &&
-      !isNaN(candle.low) &&
-      !isNaN(candle.close)
-    );
-
-    if (validCandles.length !== candles.length) {
-      console.warn(`[TradingChart] Filtered out ${candles.length - validCandles.length} candles with null/invalid values`);
-    }
+    const validCandles = filterValidCandles(candles, 'TradingChart');
 
     if (validCandles.length === 0) {
       console.warn('[TradingChart] No valid candle data to display');

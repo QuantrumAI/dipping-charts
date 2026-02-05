@@ -6,6 +6,8 @@ import { CandleData, TimeFrame } from '../types';
 const TIME_INTERVALS: Record<TimeFrame, number> = {
   '1m': 60,                    // 1분
   '5m': 300,                   // 5분
+  '15m': 900,                  // 15분
+  '30m': 1800,                 // 30분
   '1h': 3600,                  // 1시간
   '1d': 86400,                 // 1일
   '1w': 604800,                // 1주
@@ -65,6 +67,8 @@ export function generateAllTimeFrames(basePrice: number = 150): Record<TimeFrame
   return {
     '1m': generateMockCandles('1m', 200, basePrice),
     '5m': generateMockCandles('5m', 200, basePrice),
+    '15m': generateMockCandles('15m', 200, basePrice),
+    '30m': generateMockCandles('30m', 200, basePrice),
     '1h': generateMockCandles('1h', 168, basePrice),  // 1주일
     '1d': generateMockCandles('1d', 365, basePrice),  // 1년
     '1w': generateMockCandles('1w', 52, basePrice),   // 1년

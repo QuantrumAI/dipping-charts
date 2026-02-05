@@ -1,3 +1,14 @@
+/**
+ * 난독화된 lightweight-charts Line Tool 결과에서 도구 ID를 추출합니다.
+ */
+function getToolIdFromResult(result) {
+  try {
+    return result?.ak?.ji ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Import from chart.js
 import {
   chart,
@@ -328,9 +339,8 @@ document.addEventListener('keydown', (e) => {
       remainingTools.forEach((t, index) => {
         const result = chart.addLineTool(t.toolType, t.points, t.options);
 
-        // result.ak.ji가 새로운 도구 ID
-        if (result && result.ak && result.ak.ji) {
-          const newId = result.ak.ji;
+        const newId = getToolIdFromResult(result);
+        if (newId) {
           console.log('   도구 재생성: 기존 ID', t.id, '→ 새 ID', newId);
           lineToolsMap.set(newId, {
             id: newId,
@@ -368,8 +378,8 @@ document.addEventListener('keydown', (e) => {
       // 완성된 도구들만 다시 추가
       completedTools.forEach(t => {
         const result = chart.addLineTool(t.toolType, t.points, t.options);
-        if (result && result.ak && result.ak.ji) {
-          const newId = result.ak.ji;
+        const newId = getToolIdFromResult(result);
+        if (newId) {
           console.log('   도구 재생성: 기존 ID', t.id, '→ 새 ID', newId);
           // 기존 맵의 ID를 새 ID로 교체
           lineToolsMap.set(newId, {
@@ -547,9 +557,8 @@ chart.subscribeLineToolsAfterEdit((params) => {
           const opts = t.id === toolId ? updatedOptions : t.options;
           const result = chart.addLineTool(t.toolType, t.points, opts);
 
-          // result.ak.ji가 새로운 도구 ID
-          if (result && result.ak && result.ak.ji) {
-            const newId = result.ak.ji;
+          const newId = getToolIdFromResult(result);
+          if (newId) {
             lineToolsMap.set(newId, {
               id: newId,
               toolType: t.toolType,
@@ -621,9 +630,8 @@ function updateLineWidth(newWidth) {
       const opts = t.id === selectedLineToolId ? updatedOptions : t.options;
       const result = chart.addLineTool(t.toolType, t.points, opts);
 
-      // result.ak.ji가 새로운 도구 ID
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
+      const newId = getToolIdFromResult(result);
+      if (newId) {
         console.log('   도구 재생성: 기존 ID', t.id, '→ 새 ID', newId, '타입:', t.toolType);
         lineToolsMap.set(newId, {
           id: newId,
@@ -743,9 +751,8 @@ colorPalette.querySelectorAll('.color-option').forEach(btn => {
         const opts = t.id === selectedLineToolId ? updatedOptions : t.options;
         const result = chart.addLineTool(t.toolType, t.points, opts);
 
-        // result.ak.ji가 새로운 도구 ID
-        if (result && result.ak && result.ak.ji) {
-          const newId = result.ak.ji;
+        const newId = getToolIdFromResult(result);
+        if (newId) {
           console.log('   도구 재생성: 기존 ID', t.id, '→ 새 ID', newId, '타입:', t.toolType);
           lineToolsMap.set(newId, {
             id: newId,
@@ -803,9 +810,8 @@ contextMenu.querySelector('[data-action="edit-text"]').addEventListener('click',
             const opts = t.id === selectedLineToolId ? updatedOptions : t.options;
             const result = chart.addLineTool(t.toolType, t.points, opts);
 
-            // result.ak.ji가 새로운 도구 ID
-            if (result && result.ak && result.ak.ji) {
-              const newId = result.ak.ji;
+            const newId = getToolIdFromResult(result);
+            if (newId) {
               lineToolsMap.set(newId, {
                 id: newId,
                 toolType: t.toolType,
@@ -852,9 +858,8 @@ contextMenu.querySelector('[data-action="delete"]').addEventListener('click', (e
     remainingTools.forEach((t, index) => {
       const result = chart.addLineTool(t.toolType, t.points, t.options);
 
-      // result.ak.ji가 새로운 도구 ID
-      if (result && result.ak && result.ak.ji) {
-        const newId = result.ak.ji;
+      const newId = getToolIdFromResult(result);
+      if (newId) {
         console.log('   도구 재생성: 기존 ID', t.id, '→ 새 ID', newId, '타입:', t.toolType);
         lineToolsMap.set(newId, {
           id: newId,

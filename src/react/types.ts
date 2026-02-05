@@ -1,4 +1,5 @@
-import type { CandleData } from '../types';
+import type { CandleData, TimeFrame } from '../types';
+export type { TimeFrame };
 
 export interface IndicatorConfig {
   color: string;
@@ -31,7 +32,7 @@ export interface IndicatorConfigs {
   bbands: BollingerBandsConfig[];
 }
 
-export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '1d' | '1w' | '1M';
+// TimeFrame is re-exported from ../types above
 
 // 시장 세션 타입 (KIS 실시간 지원 여부 판단)
 export type MarketSession = 'premarket' | 'regular' | 'aftermarket' | 'daymarket' | 'closed';
