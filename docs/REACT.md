@@ -99,13 +99,60 @@ export default App;
 
 ```typescript
 interface FullFeaturedChartProps {
-  data?: CandleData[];           // 커스텀 데이터 (optional)
-  width?: number;                 // 차트 너비 (기본: 부모 요소 너비)
-  height?: number;                // 차트 높이 (기본: 600)
-  className?: string;             // CSS 클래스 (optional)
-  enableTimeframes?: boolean;     // 시간봉 버튼 (기본: true)
-  enableIndicators?: boolean;     // 보조지표 (기본: true)
-  enableDrawingTools?: boolean;   // 그리기 도구 (기본: true)
+  // 데이터
+  data?: CandleData[];                    // 커스텀 데이터 (optional)
+
+  // 레이아웃
+  width?: number;                          // 차트 너비 (기본: 부모 요소 너비)
+  height?: number;                         // 차트 높이 (기본: 600)
+  className?: string;                      // CSS 클래스 (optional)
+
+  // 기능 활성화
+  enableTimeframes?: boolean;              // 시간봉 버튼 (기본: true)
+  enableIndicators?: boolean;              // 보조지표 (기본: true)
+  enableDrawingTools?: boolean;            // 그리기 도구 (기본: true)
+
+  // 타임프레임 관련
+  defaultTimeframe?: TimeFrame;            // 초기 타임프레임 (기본: '1d')
+  timeframeAvailability?: TimeframeAvailability; // 시장 세션별 타임프레임 가용성
+  onTimeframeChange?: (tf: TimeFrame) => void;   // 타임프레임 변경 콜백
+
+  // 실시간 업데이트
+  realtimeCandle?: CandleData;             // 실시간 캔들 (WebSocket 연동)
+
+  // 로딩/에러 상태
+  loading?: boolean;                       // 로딩 상태 표시
+  error?: string | null;                   // 에러 메시지 표시
+
+  // 종목 정보
+  symbol?: string;                         // 종목 심볼 (차트 좌상단 표시)
+  statusBadge?: React.ReactNode;           // 심볼 옆 상태 배지 (React 노드)
+
+  // 가격 라인
+  priceLines?: PriceLine[];                // 수평 가격 라인 (평단가 등)
+
+  // 그리기 도구
+  initialLineTools?: LineTool[];           // 초기 그리기 도구 상태
+  onLineToolsChange?: (tools: LineTool[]) => void; // 그리기 도구 변경 콜백
+
+  // 볼륨
+  showVolume?: boolean;                    // 볼륨 바 표시 여부
+
+  // 지표 저장/복원
+  indicatorStorageKey?: string;            // localStorage 키 (설정 시 자동 저장/복원)
+  initialIndicatorState?: {                // 지표 초기 상태 (백엔드 저장 연동)
+    configs: IndicatorConfigs;
+    checked: IndicatorType[];
+    macdColors: { line: string; signal: string };
+  };
+  onIndicatorStateChange?: (state: {       // 지표 상태 변경 콜백
+    configs: IndicatorConfigs;
+    checked: IndicatorType[];
+    macdColors: { line: string; signal: string };
+  }) => void;
+
+  // 그리기 도구 클릭 가드
+  onDrawingToolClick?: () => boolean;      // false 반환 시 활성화 취소 (로그인 체크 등)
 }
 ```
 
@@ -323,6 +370,22 @@ function RealtimeChart() {
 | `enableTimeframes` | `boolean` | `true` | 타임프레임 선택 UI 표시 |
 | `enableIndicators` | `boolean` | `true` | 지표 추가 UI 표시 |
 | `enableDrawingTools` | `boolean` | `true` | 그리기 도구 UI 표시 |
+| `defaultTimeframe` | `TimeFrame` | `'1d'` | 초기 타임프레임 설정 |
+| `timeframeAvailability` | `TimeframeAvailability` | `undefined` | 시장 세션별 타임프레임 활성/비활성 제어 |
+| `onTimeframeChange` | `(timeframe: TimeFrame) => void` | `undefined` | 타임프레임 변경 시 호출되는 콜백 |
+| `realtimeCandle` | `CandleData` | `undefined` | 실시간 캔들 데이터 (WebSocket 연동 시 사용) |
+| `loading` | `boolean` | `false` | 로딩 상태 표시 |
+| `error` | `string \| null` | `undefined` | 에러 메시지 표시 |
+| `symbol` | `string` | `undefined` | 종목 심볼 (차트 좌상단에 표시) |
+| `statusBadge` | `React.ReactNode` | `undefined` | 심볼 옆에 표시할 상태 배지 (React 노드) |
+| `priceLines` | `PriceLine[]` | `undefined` | 수평 가격 라인 배열 (평단가 등) |
+| `initialLineTools` | `LineTool[]` | `undefined` | 그리기 도구 초기 상태 |
+| `onLineToolsChange` | `(tools: LineTool[]) => void` | `undefined` | 그리기 도구 변경 시 호출되는 콜백 |
+| `showVolume` | `boolean` | `undefined` | 볼륨 바 표시 여부 |
+| `indicatorStorageKey` | `string` | `undefined` | 지표 설정 localStorage 키 (설정 시 자동 저장/복원) |
+| `initialIndicatorState` | `object` | `undefined` | 지표 초기 상태 (configs, checked, macdColors) |
+| `onIndicatorStateChange` | `(state: object) => void` | `undefined` | 지표 상태 변경 시 호출되는 콜백 (백엔드 저장 연동) |
+| `onDrawingToolClick` | `() => boolean` | `undefined` | 그리기 도구 클릭 시 호출. false 반환 시 활성화 취소 (로그인 체크 등) |
 
 ### CandleData 타입
 
@@ -341,8 +404,8 @@ interface CandleData {
 
 ## 📊 포함된 모든 기능
 
-### 타임프레임 (6가지)
-- 1분, 5분, 1시간, 일, 주, 월
+### 타임프레임 (8가지)
+- 1분, 5분, 15분, 30분, 1시간, 일, 주, 월
 - 클릭으로 즉시 변경
 - 타임프레임별 mock 데이터 자동 생성
 
@@ -535,4 +598,4 @@ function ResponsiveChart() {
 
 ---
 
-© 2025 Quantrum AI (https://quantrumai.com/)
+© 2026 Quantrum AI (https://quantrumai.com/)

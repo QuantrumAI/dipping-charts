@@ -2,6 +2,8 @@
 
 Tradingview-lib는 [lightweight-charts-line-tools](https://github.com/difurious/lightweight-charts-line-tools)를 기반으로 하여 19가지 인터랙티브 그리기 도구를 제공합니다.
 
+> **참고**: 아래 목록은 underlying 라이브러리가 지원하는 전체 19가지 도구입니다. React 래퍼(`dipping-charts/react`)에서는 이 중 6가지만 노출됩니다: **TrendLine**, **HorizontalLine**, **VerticalLine**, **Rectangle**, **FibRetracement**, **Text**.
+
 ## 기반 버전
 
 - **lightweight-charts 3.8.0** (line-tools 버전)

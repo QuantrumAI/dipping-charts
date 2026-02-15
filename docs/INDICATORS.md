@@ -29,7 +29,7 @@ Tradingview-lib에 포함된 기술적 지표 사용 가이드입니다.
 ### SMA (Simple Moving Average)
 
 ```typescript
-import { calculateSMA, CandleData } from 'tradingview-lib';
+import { calculateSMA, CandleData } from 'dipping-charts/indicators';
 
 const candles: CandleData[] = [
   // ... 캔들 데이터
@@ -47,7 +47,7 @@ const sma20 = calculateSMA(candles, {
 ### EMA (Exponential Moving Average)
 
 ```typescript
-import { calculateEMA } from 'tradingview-lib';
+import { calculateEMA } from 'dipping-charts/indicators';
 
 const ema12 = calculateEMA(candles, {
   period: 12,
@@ -58,7 +58,7 @@ const ema12 = calculateEMA(candles, {
 ### RSI (Relative Strength Index)
 
 ```typescript
-import { calculateRSI } from 'tradingview-lib';
+import { calculateRSI } from 'dipping-charts/indicators';
 
 const rsi14 = calculateRSI(candles, {
   period: 14,
@@ -71,7 +71,7 @@ const rsi14 = calculateRSI(candles, {
 ### MACD
 
 ```typescript
-import { calculateMACD } from 'tradingview-lib';
+import { calculateMACD } from 'dipping-charts/indicators';
 
 const macd = calculateMACD(candles, {
   fastPeriod: 12,
@@ -91,7 +91,7 @@ const macd = calculateMACD(candles, {
 ### Bollinger Bands
 
 ```typescript
-import { calculateBollingerBands } from 'tradingview-lib';
+import { calculateBollingerBands } from 'dipping-charts/indicators';
 
 const bbands = calculateBollingerBands(candles, {
   period: 20,
@@ -111,7 +111,7 @@ const bbands = calculateBollingerBands(candles, {
 ### Currency Strength (Forex 전용)
 
 ```typescript
-import { calculateCurrencyStrength, CandleData } from 'tradingview-lib';
+import { calculateCurrencyStrength, CandleData } from 'dipping-charts/indicators';
 
 // 7개 주요 통화쌍 데이터가 필요합니다
 const pairs = {
@@ -142,7 +142,7 @@ const strength = calculateCurrencyStrength({ pairs });
 ## TradingView Lightweight Charts와 함께 사용하기
 
 ```typescript
-import { TradingChart, calculateSMA, calculateRSI, generateMockCandles } from 'tradingview-lib';
+import { TradingChart, calculateSMA, calculateRSI, generateMockCandles } from 'dipping-charts/indicators';
 
 // 차트 생성
 const chart = new TradingChart(document.getElementById('chart')!);
