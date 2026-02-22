@@ -1,0 +1,15 @@
+dipping-charts
+Copyright (c) 2025 QuantrumAI
+
+This product includes a custom build of TradingView Lightweight Charts
+with line-tools support, bundled at:
+
+  lib/lightweight-charts.standalone.production.js
+
+TradingView Lightweight Charts is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at:
+
+  https://www.apache.org/licenses/LICENSE-2.0
+
+Original source: https://github.com/nickolasburr/tradingview-lightweight-charts
+Copyright (c) TradingView, Inc.

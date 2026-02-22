@@ -13,7 +13,11 @@ export { useShiftSnap } from './hooks/useShiftSnap';
 export type { UseChartOptions, UseChartReturn } from './hooks/useChart';
 export type { UseLineToolsOptions } from './hooks/useLineTools';
 
-// 타입 (메인 패키지에서 재export)
+// Locale
+export { getLocaleStrings } from './locale';
+export type { Locale, LocaleStrings } from './locale';
+
+// Types
 export type { CandleData, TimeFrame, ChartOptions } from '../types';
 export type {
   IndicatorType,

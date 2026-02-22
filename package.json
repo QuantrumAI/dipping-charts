@@ -2,7 +2,7 @@
   "name": "dipping-charts",
   "version": "0.1.0",
   "type": "module",
-  "description": "Dipping 자체 구현 차트 라이브러리 - 기술적 지표 및 그리기 도구 포함",
+  "description": "Financial charting library with technical indicators and drawing tools, built on TradingView Lightweight Charts",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -37,8 +37,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
+    "lint": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "lightweight-charts": "^3.8.0",
@@ -66,17 +68,24 @@
     "vitest": "^4.0.18"
   },
   "keywords": [
-    "dipping",
+    "chart",
+    "trading",
     "tradingview",
     "lightweight-charts",
     "technical-indicators",
-    "charting",
-    "trading",
-    "education"
+    "candlestick",
+    "finance",
+    "stocks",
+    "drawing-tools",
+    "sma",
+    "ema",
+    "rsi",
+    "macd",
+    "bollinger-bands",
+    "react"
   ],
   "author": "QuantrumAI",
-  "license": "SEE LICENSE IN LICENSE",
-  "private": true,
+  "license": "MIT",
   "sideEffects": [
     "*.css",
     "src/react/index.ts",
@@ -86,5 +95,8 @@
     "type": "git",
     "url": "https://github.com/QuantrumAI/dipping-charts"
   },
-  "homepage": "https://github.com/QuantrumAI/dipping-charts"
+  "homepage": "https://github.com/QuantrumAI/dipping-charts",
+  "bugs": {
+    "url": "https://github.com/QuantrumAI/dipping-charts/issues"
+  }
 }

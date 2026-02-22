@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { IndicatorType, IndicatorConfig, BollingerBandsConfig, MACDConfig, IndicatorConfigs } from '../types';
+import type { Locale, LocaleStrings } from '../locale';
+import { getLocaleStrings } from '../locale';
 
 const COLOR_PALETTE = [
   '#3C4043', '#1A73E8', '#9334E6', '#B80000', '#E37400', '#F9AB00', '#007B83', '#1E8E3E',
@@ -11,22 +13,25 @@ const COLOR_PALETTE = [
 
 const DEFAULT_COLORS = ['#26a69a', '#ef5350', '#2196f3', '#ff6f00', '#ab47bc', '#66bb6a', '#ffa726', '#42a5f5'];
 
-const INDICATOR_INFO = {
-  sma: { title: '이동평균선', desc: '지난 n일 동안 주가 평균값을 이은 선', defaultValue: 20 },
-  ema: { title: '지수이동평균', desc: '최근 가격에 더 큰 가중치를 둔 이동평균선', defaultValue: 12 },
-  rsi: { title: 'RSI', desc: '상대강도지수 - 과매수/과매도 판단', defaultValue: 14 },
-  macd: { title: 'MACD', desc: '이동평균 수렴확산 - 추세 전환 신호', defaultValue: 26 },
-  bbands: { title: '볼린저 밴드', desc: '가격 변동성을 나타내는 밴드', defaultValue: 20 }
-};
+function getIndicatorInfo(t: LocaleStrings) {
+  return {
+    sma: { title: t.ind_sma, desc: t.ind_sma_desc, defaultValue: 20 },
+    ema: { title: t.ind_ema, desc: t.ind_ema_desc, defaultValue: 12 },
+    rsi: { title: t.ind_rsi, desc: t.ind_rsi_desc, defaultValue: 14 },
+    macd: { title: t.ind_macd, desc: t.ind_macd_desc, defaultValue: 26 },
+    bbands: { title: t.ind_bbands, desc: t.ind_bbands_desc, defaultValue: 20 },
+  };
+}
 
 interface ColorPalettePopupProps {
   currentColor: string;
   onSelect: (color: string) => void;
   onClose: () => void;
   position: { top: number; left: number };
+  colorTitle?: string;
 }
 
-function ColorPalettePopup({ currentColor, onSelect, onClose, position }: ColorPalettePopupProps) {
+function ColorPalettePopup({ currentColor, onSelect, onClose, position, colorTitle = 'Color' }: ColorPalettePopupProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,7 +62,7 @@ function ColorPalettePopup({ currentColor, onSelect, onClose, position }: ColorP
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="color-palette-title">컬러</div>
+      <div className="color-palette-title">{colorTitle}</div>
       <div className="color-palette-grid">
         {COLOR_PALETTE.map(color => (
           <div
@@ -86,6 +91,7 @@ interface IndicatorSettingsProps {
   onConfigChange: (indicator: IndicatorType, configs: any[]) => void;
   macdColors: { line: string; signal: string };
   onMacdColorsChange: (colors: { line: string; signal: string }) => void;
+  locale?: Locale;
 }
 
 export function IndicatorSettings({
@@ -94,12 +100,15 @@ export function IndicatorSettings({
   isChecked,
   onConfigChange,
   macdColors,
-  onMacdColorsChange
+  onMacdColorsChange,
+  locale: localeProp = 'en',
 }: IndicatorSettingsProps) {
+  const t = getLocaleStrings(localeProp);
+  const INDICATOR_INFO = getIndicatorInfo(t);
   const [colorPaletteOpen, setColorPaletteOpen] = useState<{ index?: number; type?: string; position: { top: number; left: number } } | null>(null);
 
   if (!indicator) {
-    return <div className="indicator-empty-state">지표를 선택하세요</div>;
+    return <div className="indicator-empty-state">{t.selectIndicator}</div>;
   }
 
   const info = INDICATOR_INFO[indicator];
@@ -110,7 +119,7 @@ export function IndicatorSettings({
       <div>
         <div className="indicator-settings-title">{info.title}</div>
         <div className="indicator-settings-desc">{info.desc}</div>
-        <div className="indicator-empty-state">체크박스를 클릭하여 지표를 활성화하세요</div>
+        <div className="indicator-empty-state">{t.enableIndicator}</div>
       </div>
     );
   }
@@ -136,7 +145,7 @@ export function IndicatorSettings({
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>색상</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.color}</div>
               <div
                 className="period-color-picker"
                 style={{ background: rsiConfig.color, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -144,7 +153,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>기간</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.period}</div>
               <input
                 type="number"
                 value={rsiConfig.value}
@@ -157,7 +166,7 @@ export function IndicatorSettings({
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>과매도</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.oversold}</div>
               <input
                 type="number"
                 value={rsiConfig.oversold ?? 30}
@@ -168,7 +177,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>과매수</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.overbought}</div>
               <input
                 type="number"
                 value={rsiConfig.overbought ?? 70}
@@ -186,6 +195,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...rsiConfig, color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
       </div>
@@ -200,10 +210,9 @@ export function IndicatorSettings({
         <div className="indicator-settings-title">{info.title}</div>
         <div className="indicator-settings-desc">{info.desc}</div>
         <div style={{ marginTop: 16 }}>
-          {/* 색상 설정 (한 줄) */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>MACD</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.ind_macd}</div>
               <div
                 className="period-color-picker"
                 style={{ background: macdColors.line, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -211,7 +220,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Signal</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.signal}</div>
               <div
                 className="period-color-picker"
                 style={{ background: macdColors.signal, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -220,10 +229,9 @@ export function IndicatorSettings({
             </div>
           </div>
 
-          {/* 히스토그램 색상 */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>양봉</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.bullish}</div>
               <div
                 className="period-color-picker"
                 style={{ background: macdConfig.histUpColor || '#26a69a', width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -231,7 +239,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>음봉</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.bearish}</div>
               <div
                 className="period-color-picker"
                 style={{ background: macdConfig.histDownColor || '#ef5350', width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -240,10 +248,9 @@ export function IndicatorSettings({
             </div>
           </div>
 
-          {/* 파라미터 설정 (한 줄) */}
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>단기</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.fast}</div>
               <input
                 type="number"
                 value={macdConfig.fastPeriod}
@@ -254,7 +261,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>장기</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.slow}</div>
               <input
                 type="number"
                 value={macdConfig.slowPeriod}
@@ -265,7 +272,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>시그널</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.signal}</div>
               <input
                 type="number"
                 value={macdConfig.signalPeriod}
@@ -283,6 +290,7 @@ export function IndicatorSettings({
             onSelect={(color) => onMacdColorsChange({ ...macdColors, line: color })}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
         {colorPaletteOpen && colorPaletteOpen.type === 'macd-signal' && (
@@ -291,6 +299,7 @@ export function IndicatorSettings({
             onSelect={(color) => onMacdColorsChange({ ...macdColors, signal: color })}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
         {colorPaletteOpen && colorPaletteOpen.type === 'hist-up' && (
@@ -299,6 +308,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...macdConfig, histUpColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
         {colorPaletteOpen && colorPaletteOpen.type === 'hist-down' && (
@@ -307,6 +317,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...macdConfig, histDownColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
       </div>
@@ -323,7 +334,7 @@ export function IndicatorSettings({
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>상단</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.upper}</div>
               <div
                 className="period-color-picker"
                 style={{ background: bbConfig.upperColor, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -331,7 +342,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>중간</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.middle}</div>
               <div
                 className="period-color-picker"
                 style={{ background: bbConfig.middleColor, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -339,7 +350,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>하단</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.lower}</div>
               <div
                 className="period-color-picker"
                 style={{ background: bbConfig.lowerColor, width: '100%', height: 40, cursor: 'pointer', borderRadius: 6, border: '1px solid #e0e0e0' }}
@@ -349,7 +360,7 @@ export function IndicatorSettings({
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>기간</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.period}</div>
               <input
                 type="number"
                 value={bbConfig.value}
@@ -360,7 +371,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>표준편차</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.stdDev}</div>
               <input
                 type="number"
                 value={bbConfig.stdDev}
@@ -372,7 +383,7 @@ export function IndicatorSettings({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>두께</div>
+              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{t.thickness}</div>
               <div
                 style={{ width: '100%', height: 40, border: '1px solid #e0e0e0', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 500, cursor: 'pointer', background: 'white' }}
                 onClick={() => onConfigChange(indicator, [{ ...bbConfig, thickness: (bbConfig.thickness % 5) + 1 }])}
@@ -388,6 +399,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...bbConfig, upperColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
         {colorPaletteOpen && colorPaletteOpen.type === 'bb-middle' && (
@@ -396,6 +408,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...bbConfig, middleColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
         {colorPaletteOpen && colorPaletteOpen.type === 'bb-lower' && (
@@ -404,6 +417,7 @@ export function IndicatorSettings({
             onSelect={(color) => onConfigChange(indicator, [{ ...bbConfig, lowerColor: color }])}
             onClose={() => setColorPaletteOpen(null)}
             position={colorPaletteOpen.position}
+            colorTitle={t.colorPaletteTitle}
           />
         )}
       </div>
@@ -417,7 +431,7 @@ export function IndicatorSettings({
       <div className="indicator-settings-desc">{info.desc}</div>
       {(config as IndicatorConfig[]).map((cfg, index) => (
         <div key={index} className="indicator-period-row">
-          <span className="period-label-col">기간{index + 1}</span>
+          <span className="period-label-col">{t.periodN(index + 1)}</span>
           <div
             className="period-color-picker"
             style={{ background: cfg.color, cursor: 'pointer' }}
@@ -442,10 +456,10 @@ export function IndicatorSettings({
               onConfigChange(indicator, newConfigs);
             }}
           >
-            <option value="close">종가</option>
-            <option value="open">시가</option>
-            <option value="high">고가</option>
-            <option value="low">저가</option>
+            <option value="close">{t.src_close}</option>
+            <option value="open">{t.src_open}</option>
+            <option value="high">{t.src_high}</option>
+            <option value="low">{t.src_low}</option>
           </select>
           <input
             type="number"
@@ -488,7 +502,7 @@ export function IndicatorSettings({
           ]);
         }}
       >
-        + 기간 추가
+        {t.addPeriod}
       </button>
       {colorPaletteOpen && colorPaletteOpen.index !== undefined && (
         <ColorPalettePopup
@@ -500,6 +514,7 @@ export function IndicatorSettings({
           }}
           onClose={() => setColorPaletteOpen(null)}
           position={colorPaletteOpen.position}
+          colorTitle={t.colorPaletteTitle}
         />
       )}
     </div>

@@ -7,38 +7,34 @@ import { IndicatorSettings } from './components/IndicatorSettings';
 import type { CandleData } from '../types';
 import type { FullFeaturedChartProps, TimeFrame, IndicatorConfigs, IndicatorType, TimeframeAvailability } from './types';
 import { isValidCandle, filterValidCandles } from '../utils/validateCandle';
+import { getLocaleStrings } from './locale';
+import type { LocaleStrings } from './locale';
 import './FullFeaturedChart.css';
 
 const DEFAULT_COLORS = ['#26a69a', '#ef5350', '#2196f3', '#ff6f00', '#ab47bc', '#66bb6a', '#ffa726', '#42a5f5'];
 
-// 타임프레임 표시 설정
-const TIMEFRAME_CONFIG: { value: TimeFrame; label: string }[] = [
-  { value: '1m', label: '1분' },
-  { value: '5m', label: '5분' },
-  { value: '15m', label: '15분' },
-  { value: '30m', label: '30분' },
-  { value: '1h', label: '1시간' },
-  { value: '1d', label: '일' },
-  { value: '1w', label: '주' },
-  { value: '1M', label: '월' },
+const TIMEFRAME_KEYS: { value: TimeFrame; key: keyof LocaleStrings }[] = [
+  { value: '1m', key: 'tf_1m' },
+  { value: '5m', key: 'tf_5m' },
+  { value: '15m', key: 'tf_15m' },
+  { value: '30m', key: 'tf_30m' },
+  { value: '1h', key: 'tf_1h' },
+  { value: '1d', key: 'tf_1d' },
+  { value: '1w', key: 'tf_1w' },
+  { value: '1M', key: 'tf_1M' },
 ];
 
-// 기본 타임프레임 가용성 (모든 타임프레임 활성화)
 const DEFAULT_TIMEFRAME_AVAILABILITY: TimeframeAvailability = {
   enabled: ['1m', '5m', '15m', '30m', '1h', '1d', '1w', '1M'],
   disabled: [],
   currentSession: 'regular',
 };
 
-// 그리기 도구 한국어 라벨
-const TOOL_LABELS: Record<string, string> = {
-  TrendLine: '추세선',
-  HorizontalLine: '수평선',
-  VerticalLine: '수직선',
-  Rectangle: '사각형',
-  FibRetracement: '피보나치',
-  Text: '텍스트',
-};
+function getToolLabel(t: LocaleStrings, toolType: string): string {
+  const key = `tool_${toolType}` as keyof LocaleStrings;
+  const val = t[key];
+  return typeof val === 'string' ? val : toolType;
+}
 
 // localStorage 지표 설정 저장/복원
 function saveIndicatorState(key: string, configs: IndicatorConfigs, checked: Set<IndicatorType>, macdColors: { line: string; signal: string }) {
@@ -78,6 +74,7 @@ function clampToViewport(x: number, y: number, menuWidth = 280, menuHeight = 50)
 }
 
 export function FullFeaturedChart({
+  locale: localeProp = 'en',
   data,
   width,
   height = 600,
@@ -102,6 +99,7 @@ export function FullFeaturedChart({
   initialIndicatorState,
   onIndicatorStateChange,
 }: FullFeaturedChartProps) {
+  const t = getLocaleStrings(localeProp);
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeframe);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
   const [indicatorDropdownOpen, setIndicatorDropdownOpen] = useState(false);
@@ -542,7 +540,7 @@ export function FullFeaturedChart({
         <div className="header-left">
           {enableTimeframes && (
             <div className="timeframe-group">
-              {TIMEFRAME_CONFIG.map(({ value: tf, label }) => {
+              {TIMEFRAME_KEYS.map(({ value: tf, key }) => {
                 const isDisabled = timeframeAvailability.disabled.includes(tf);
                 const isActive = timeFrame === tf;
                 return (
@@ -551,9 +549,9 @@ export function FullFeaturedChart({
                     className={`btn-timeframe ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
                     onClick={() => handleTimeframeChange(tf)}
                     disabled={isDisabled}
-                    title={isDisabled ? '현재 시간대에서 사용할 수 없습니다' : undefined}
+                    title={isDisabled ? t.tf_unavailable : undefined}
                   >
-                    {label}
+                    {t[key] as string}
                   </button>
                 );
               })}
@@ -566,7 +564,7 @@ export function FullFeaturedChart({
           {/* 활성 그리기 도구 피드백 배지 */}
           {enableDrawingTools && lineTools.activeToolType && (
             <div className="active-tool-badge">
-              {TOOL_LABELS[lineTools.activeToolType] || lineTools.activeToolType} 그리는 중
+              {getToolLabel(t, lineTools.activeToolType)} {t.tool_drawing}
             </div>
           )}
 
@@ -576,47 +574,47 @@ export function FullFeaturedChart({
                 setIndicatorDropdownOpen(!indicatorDropdownOpen);
                 setDrawingDropdownOpen(false);
               }}>
-                + 보조지표
+                {t.btn_indicators}
               </button>
               {indicatorDropdownOpen && (
                 <div className="dropdown-menu show" id="indicatorMenu">
                   <div className="indicator-menu-layout">
                     <div className="indicator-list-side">
-                      <div className="indicator-category">상단 지표</div>
+                      <div className="indicator-category">{t.cat_overlay}</div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('sma') ? 'checked' : ''} ${selectedIndicator === 'sma' ? 'selected' : ''}`}
                         onClick={() => setSelectedIndicator('sma')}
                       >
-                        <span>이동평균선</span>
+                        <span>{t.ind_sma}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('sma'); setSelectedIndicator('sma'); }}></div>
                       </div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('ema') ? 'checked' : ''} ${selectedIndicator === 'ema' ? 'selected' : ''}`}
                         onClick={() => setSelectedIndicator('ema')}
                       >
-                        <span>지수이동평균</span>
+                        <span>{t.ind_ema}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('ema'); setSelectedIndicator('ema'); }}></div>
                       </div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('bbands') ? 'checked' : ''} ${selectedIndicator === 'bbands' ? 'selected' : ''}`}
                         onClick={() => setSelectedIndicator('bbands')}
                       >
-                        <span>볼린저 밴드</span>
+                        <span>{t.ind_bbands}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('bbands'); setSelectedIndicator('bbands'); }}></div>
                       </div>
-                      <div className="indicator-category">하단 지표</div>
+                      <div className="indicator-category">{t.cat_oscillator}</div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('rsi') ? 'checked' : ''} ${selectedIndicator === 'rsi' ? 'selected' : ''}`}
                         onClick={() => setSelectedIndicator('rsi')}
                       >
-                        <span>RSI</span>
+                        <span>{t.ind_rsi}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('rsi'); setSelectedIndicator('rsi'); }}></div>
                       </div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('macd') ? 'checked' : ''} ${selectedIndicator === 'macd' ? 'selected' : ''}`}
                         onClick={() => setSelectedIndicator('macd')}
                       >
-                        <span>MACD</span>
+                        <span>{t.ind_macd}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('macd'); setSelectedIndicator('macd'); }}></div>
                       </div>
                     </div>
@@ -631,9 +629,10 @@ export function FullFeaturedChart({
                           }}
                           macdColors={macdColors}
                           onMacdColorsChange={setMacdColors}
+                          locale={localeProp}
                         />
                       ) : (
-                        <div className="indicator-empty-state">지표를 선택하세요</div>
+                        <div className="indicator-empty-state">{t.selectIndicator}</div>
                       )}
                     </div>
                   </div>
@@ -645,40 +644,39 @@ export function FullFeaturedChart({
           {enableDrawingTools && (
             <div className="dropdown">
               <button className="btn-text" onClick={() => {
-                // 로그인 체크 콜백이 있고, false를 반환하면 드롭다운 열지 않음
                 if (onDrawingToolClick && !onDrawingToolClick()) {
                   return;
                 }
                 setDrawingDropdownOpen(!drawingDropdownOpen);
                 setIndicatorDropdownOpen(false);
               }}>
-                <span className="tossface">✏️</span> 그리기
+                {t.btn_draw}
               </button>
               {drawingDropdownOpen && (
                 <div className="dropdown-menu show">
                   <button className="dropdown-item" onClick={() => { lineTools.activateTool('TrendLine'); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon tossface">📏</span>
-                    <span>추세선</span>
+                    <span>{t.tool_TrendLine}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { lineTools.activateTool('HorizontalLine'); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon tossface">➖</span>
-                    <span>수평선</span>
+                    <span>{t.tool_HorizontalLine}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { lineTools.activateTool('VerticalLine'); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon">|</span>
-                    <span>수직선</span>
+                    <span>{t.tool_VerticalLine}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { lineTools.activateTool('Rectangle'); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon tossface">▭</span>
-                    <span>사각형</span>
+                    <span>{t.tool_Rectangle}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { lineTools.activateTool('FibRetracement'); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon">Φ</span>
-                    <span>피보나치</span>
+                    <span>{t.tool_FibRetracement}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { handleTextToolClick(); setDrawingDropdownOpen(false); }}>
                     <span className="item-icon">T</span>
-                    <span>텍스트</span>
+                    <span>{t.tool_Text}</span>
                   </button>
                 </div>
               )}
@@ -688,7 +686,7 @@ export function FullFeaturedChart({
           {enableDrawingTools && (
             <>
               <div className="separator"></div>
-              <button className="btn-delete" onClick={lineTools.removeAllTools}>전체 삭제</button>
+              <button className="btn-delete" onClick={lineTools.removeAllTools}>{t.btn_clearAll}</button>
             </>
           )}
         </div>
@@ -703,15 +701,13 @@ export function FullFeaturedChart({
           onDoubleClick={handleChartDoubleClick}
         />
 
-        {/* 로딩 오버레이 */}
         {loading && (
           <div className="chart-overlay loading-overlay">
             <div className="loading-spinner"></div>
-            <span>차트 데이터 로딩 중...</span>
+            <span>{t.loading}</span>
           </div>
         )}
 
-        {/* 에러 오버레이 */}
         {error && (
           <div className="chart-overlay error-overlay">
             <span className="error-icon">⚠️</span>
@@ -719,19 +715,17 @@ export function FullFeaturedChart({
           </div>
         )}
 
-        {/* 데이터 없음 오버레이 */}
         {!loading && !error && candleData.length === 0 && (
           <div className="chart-overlay empty-overlay">
-            <span>차트 데이터가 없습니다</span>
+            <span>{t.noData}</span>
           </div>
         )}
       </div>
 
-      {/* 텍스트 모달 (추가 + 수정 공용) */}
       {textModalOpen && (
         <div className="modal-overlay show" onClick={() => setTextModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">{textModalMode === 'edit' ? '텍스트 수정' : '텍스트 입력'}</div>
+            <div className="modal-title">{textModalMode === 'edit' ? t.textEdit : t.textAdd}</div>
             <input
               type="text"
               className="modal-input"
@@ -741,12 +735,12 @@ export function FullFeaturedChart({
                 if (e.key === 'Enter') handleTextModalConfirm();
                 if (e.key === 'Escape') setTextModalOpen(false);
               }}
-              placeholder="텍스트를 입력하세요"
+              placeholder={t.textPlaceholder}
               autoFocus
             />
             <div className="modal-buttons">
-              <button className="modal-btn modal-btn-cancel" onClick={() => setTextModalOpen(false)}>취소</button>
-              <button className="modal-btn modal-btn-confirm" onClick={handleTextModalConfirm}>확인</button>
+              <button className="modal-btn modal-btn-cancel" onClick={() => setTextModalOpen(false)}>{t.cancel}</button>
+              <button className="modal-btn modal-btn-confirm" onClick={handleTextModalConfirm}>{t.confirm}</button>
             </div>
           </div>
         </div>

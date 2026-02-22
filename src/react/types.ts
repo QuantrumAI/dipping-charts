@@ -1,5 +1,6 @@
 import type { CandleData, TimeFrame } from '../types';
-export type { TimeFrame };
+import type { Locale } from './locale';
+export type { TimeFrame, Locale };
 
 export interface IndicatorConfig {
   color: string;
@@ -85,6 +86,9 @@ export interface PriceLine {
 }
 
 export interface FullFeaturedChartProps {
+  /** UI language. Defaults to 'en'. */
+  locale?: Locale;
+
   // 데이터
   data?: CandleData[];
 
