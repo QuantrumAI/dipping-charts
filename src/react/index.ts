@@ -13,6 +13,9 @@ export { useShiftSnap } from './hooks/useShiftSnap';
 export type { UseChartOptions, UseChartReturn } from './hooks/useChart';
 export type { UseLineToolsOptions } from './hooks/useLineTools';
 
+// Script Loader
+export { loadLightweightCharts } from './loadLightweightCharts';
+
 // Locale
 export { getLocaleStrings } from './locale';
 export type { Locale, LocaleStrings } from './locale';

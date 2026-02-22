@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import type { CandleData } from '../../types';
 import { filterValidCandles } from '../../utils/validateCandle';
+import { loadLightweightCharts } from '../loadLightweightCharts';
 
 // 전역 LightweightCharts 객체 (커스텀 빌드 - Line Tools 포함)
 declare const LightweightCharts: any;
@@ -25,6 +26,7 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const isDestroyedRef = useRef<boolean>(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const [chart, setChart] = useState<IChartApi | null>(null);
   const [candleSeries, setCandleSeries] = useState<ISeriesApi<'Candlestick'> | null>(null);
@@ -34,16 +36,29 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // 전역 LightweightCharts 객체 확인
-    if (typeof LightweightCharts === 'undefined') {
-      console.error('[useChart] LightweightCharts is not loaded. Make sure to include the script in your HTML.');
-      return;
-    }
+    let cancelled = false;
 
     // 초기화 시 파괴 플래그 리셋
     isDestroyedRef.current = false;
 
-    const { createChart } = LightweightCharts;
+    const init = async () => {
+      // 자동 로딩 시도 (이미 로드되어 있으면 즉시 resolve)
+      let LWC: any;
+      try {
+        LWC = await loadLightweightCharts();
+      } catch {
+        // 폴백: 전역 LightweightCharts 확인 (수동 script 태그)
+        if (typeof LightweightCharts !== 'undefined') {
+          LWC = LightweightCharts;
+        } else {
+          console.error('[useChart] LightweightCharts is not loaded. Make sure to include the script in your HTML or place the standalone JS in a known path.');
+          return;
+        }
+      }
+
+      if (cancelled || !chartRef.current) return;
+
+    const { createChart } = LWC;
     const width = options.width || chartRef.current.clientWidth;
     const height = options.height || 600;
 
@@ -133,10 +148,7 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     // window resize도 백업으로 유지
     window.addEventListener('resize', handleResize);
 
-    return () => {
-      // 파괴 플래그 먼저 설정 (다른 effect들이 참조하지 않도록)
-      isDestroyedRef.current = true;
-
+    cleanupRef.current = () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
 
@@ -155,6 +167,20 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
         chartInstance.remove();
       } catch (e) {
         // 이미 파괴된 경우 무시
+      }
+    };
+    }; // end of init()
+
+    init();
+
+    return () => {
+      cancelled = true;
+      // 파괴 플래그 먼저 설정 (다른 effect들이 참조하지 않도록)
+      isDestroyedRef.current = true;
+
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
       }
     };
   }, [options.width, options.height]);

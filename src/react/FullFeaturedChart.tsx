@@ -115,7 +115,9 @@ export function FullFeaturedChart({
 
   // 지표 설정 (우선순위: initialIndicatorState > localStorage > 기본값)
   const localState = indicatorStorageKey ? loadIndicatorState(indicatorStorageKey) : null;
-  const restoredConfigs = initialIndicatorState?.configs || localState?.configs || { sma: [], ema: [], rsi: [], macd: [], bbands: [] };
+  // 항상 모든 키가 존재하도록 기본값과 병합 (이전 버전 localStorage/외부 상태 호환)
+  const DEFAULT_CONFIGS: IndicatorConfigs = { sma: [], ema: [], rsi: [], macd: [], bbands: [], stochastic: [], atr: [], vwap: [], williamsR: [] };
+  const restoredConfigs: IndicatorConfigs = { ...DEFAULT_CONFIGS, ...(initialIndicatorState?.configs || localState?.configs || {}) };
   const restoredChecked = initialIndicatorState?.checked
     ? new Set(initialIndicatorState.checked)
     : localState?.checked || new Set<IndicatorType>();
@@ -341,6 +343,46 @@ export function FullFeaturedChart({
             slowPeriod: 26,
             signalPeriod: 9,
             thickness: 2
+          }]
+        }));
+      } else if (indicator === 'stochastic') {
+        setIndicatorConfigs(prev => ({
+          ...prev,
+          stochastic: [{
+            kPeriod: 14,
+            dPeriod: 3,
+            smooth: 3,
+            kColor: '#2962FF',
+            dColor: '#FF6D00',
+            thickness: 2,
+          }]
+        }));
+      } else if (indicator === 'vwap') {
+        setIndicatorConfigs(prev => ({
+          ...prev,
+          vwap: [{
+            color: '#E040FB',
+            thickness: 2,
+          }]
+        }));
+      } else if (indicator === 'atr') {
+        setIndicatorConfigs(prev => ({
+          ...prev,
+          atr: [{
+            color: DEFAULT_COLORS[0],
+            thickness: 2,
+            source: 'close' as const,
+            value: 14,
+          }]
+        }));
+      } else if (indicator === 'williamsR') {
+        setIndicatorConfigs(prev => ({
+          ...prev,
+          williamsR: [{
+            color: DEFAULT_COLORS[0],
+            thickness: 2,
+            source: 'close' as const,
+            value: 14,
           }]
         }));
       } else {
@@ -602,6 +644,13 @@ export function FullFeaturedChart({
                         <span>{t.ind_bbands}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('bbands'); setSelectedIndicator('bbands'); }}></div>
                       </div>
+                      <div
+                        className={`indicator-item ${checkedIndicators.has('vwap') ? 'checked' : ''} ${selectedIndicator === 'vwap' ? 'selected' : ''}`}
+                        onClick={() => setSelectedIndicator('vwap')}
+                      >
+                        <span>{t.ind_vwap}</span>
+                        <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('vwap'); setSelectedIndicator('vwap'); }}></div>
+                      </div>
                       <div className="indicator-category">{t.cat_oscillator}</div>
                       <div
                         className={`indicator-item ${checkedIndicators.has('rsi') ? 'checked' : ''} ${selectedIndicator === 'rsi' ? 'selected' : ''}`}
@@ -616,6 +665,27 @@ export function FullFeaturedChart({
                       >
                         <span>{t.ind_macd}</span>
                         <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('macd'); setSelectedIndicator('macd'); }}></div>
+                      </div>
+                      <div
+                        className={`indicator-item ${checkedIndicators.has('stochastic') ? 'checked' : ''} ${selectedIndicator === 'stochastic' ? 'selected' : ''}`}
+                        onClick={() => setSelectedIndicator('stochastic')}
+                      >
+                        <span>{t.ind_stochastic}</span>
+                        <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('stochastic'); setSelectedIndicator('stochastic'); }}></div>
+                      </div>
+                      <div
+                        className={`indicator-item ${checkedIndicators.has('atr') ? 'checked' : ''} ${selectedIndicator === 'atr' ? 'selected' : ''}`}
+                        onClick={() => setSelectedIndicator('atr')}
+                      >
+                        <span>{t.ind_atr}</span>
+                        <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('atr'); setSelectedIndicator('atr'); }}></div>
+                      </div>
+                      <div
+                        className={`indicator-item ${checkedIndicators.has('williamsR') ? 'checked' : ''} ${selectedIndicator === 'williamsR' ? 'selected' : ''}`}
+                        onClick={() => setSelectedIndicator('williamsR')}
+                      >
+                        <span>{t.ind_williamsR}</span>
+                        <div className="indicator-checkbox" onClick={(e) => { e.stopPropagation(); toggleIndicator('williamsR'); setSelectedIndicator('williamsR'); }}></div>
                       </div>
                     </div>
                     <div className="indicator-settings-side">

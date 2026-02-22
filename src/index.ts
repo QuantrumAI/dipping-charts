@@ -20,6 +20,11 @@ export {
   type MACDResult,
   type BollingerBandsOptions,
   type BollingerBandsResult,
+  type StochasticOptions,
+  type StochasticResult,
+  type ATROptions,
+  type VWAPOptions,
+  type WilliamsROptions,
   type CurrencyStrengthOptions,
   type CurrencyStrengthResult,
   // 이동평균
@@ -30,6 +35,12 @@ export {
   calculateMACD,
   // 변동성 지표
   calculateBollingerBands,
+  calculateATR,
+  // 오실레이터
+  calculateStochastic,
+  calculateWilliamsR,
+  // 거래량 지표
+  calculateVWAP,
   // Forex 전용 지표
   calculateCurrencyStrength,
 } from './indicators';

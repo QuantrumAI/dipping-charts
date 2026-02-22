@@ -29,7 +29,21 @@ export interface MACDConfig {
   histDownColor?: string;
 }
 
-export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bbands';
+export interface StochasticConfig {
+  kPeriod: number;
+  dPeriod: number;
+  smooth: number;
+  kColor: string;
+  dColor: string;
+  thickness: number;
+}
+
+export interface VWAPConfig {
+  color: string;
+  thickness: number;
+}
+
+export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bbands' | 'stochastic' | 'atr' | 'vwap' | 'williamsR';
 
 export interface IndicatorConfigs {
   sma: IndicatorConfig[];
@@ -37,6 +51,10 @@ export interface IndicatorConfigs {
   rsi: IndicatorConfig[];
   macd: MACDConfig[];
   bbands: BollingerBandsConfig[];
+  stochastic: StochasticConfig[];
+  atr: IndicatorConfig[];
+  vwap: VWAPConfig[];
+  williamsR: IndicatorConfig[];
 }
 
 // TimeFrame is re-exported from ../types above

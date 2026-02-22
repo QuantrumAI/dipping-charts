@@ -4,6 +4,10 @@ import { calculateEMA } from '../indicators/ema';
 import { calculateRSI } from '../indicators/rsi';
 import { calculateMACD } from '../indicators/macd';
 import { calculateBollingerBands } from '../indicators/bollingerBands';
+import { calculateStochastic } from '../indicators/stochastic';
+import { calculateATR } from '../indicators/atr';
+import { calculateVWAP } from '../indicators/vwap';
+import { calculateWilliamsR } from '../indicators/williamsR';
 import type { CandleData } from '../types';
 
 // 테스트용 캔들 데이터 생성
@@ -15,6 +19,21 @@ function makeCandles(closes: number[], baseTime = 1000): CandleData[] {
     low: close - 1,
     close,
     volume: 1000,
+  }));
+}
+
+// HLC를 개별 지정할 수 있는 캔들 생성 헬퍼
+function makeCandlesHLC(
+  data: { high: number; low: number; close: number; volume?: number }[],
+  baseTime = 1000,
+): CandleData[] {
+  return data.map((d, i) => ({
+    time: baseTime + i * 60,
+    open: d.close,
+    high: d.high,
+    low: d.low,
+    close: d.close,
+    volume: d.volume ?? 1000,
   }));
 }
 
@@ -245,5 +264,239 @@ describe('calculateBollingerBands', () => {
       expect(result.upper[i].time).toBe(result.middle[i].time);
       expect(result.middle[i].time).toBe(result.lower[i].time);
     }
+  });
+});
+
+// =============================================
+// Stochastic Oscillator
+// =============================================
+describe('calculateStochastic', () => {
+  it('빈 배열에 대해 빈 결과를 반환', () => {
+    const result = calculateStochastic([]);
+    expect(result.k).toEqual([]);
+    expect(result.d).toEqual([]);
+  });
+
+  it('데이터가 kPeriod보다 적으면 빈 결과를 반환', () => {
+    const candles = makeCandles([10, 20, 30]);
+    const result = calculateStochastic(candles, { kPeriod: 14, dPeriod: 3, smooth: 3 });
+    expect(result.k).toEqual([]);
+  });
+
+  it('%K 값이 0~100 범위 내', () => {
+    const prices = Array.from({ length: 30 }, (_, i) => 100 + Math.sin(i * 0.5) * 20);
+    const candles = makeCandles(prices);
+    const result = calculateStochastic(candles, { kPeriod: 5, dPeriod: 3, smooth: 3 });
+
+    result.k.forEach(r => {
+      expect(r.value).toBeGreaterThanOrEqual(0);
+      expect(r.value).toBeLessThanOrEqual(100);
+    });
+  });
+
+  it('%D 값이 0~100 범위 내', () => {
+    const prices = Array.from({ length: 30 }, (_, i) => 100 + Math.sin(i * 0.5) * 20);
+    const candles = makeCandles(prices);
+    const result = calculateStochastic(candles, { kPeriod: 5, dPeriod: 3, smooth: 3 });
+
+    result.d.forEach(r => {
+      expect(r.value).toBeGreaterThanOrEqual(0);
+      expect(r.value).toBeLessThanOrEqual(100);
+    });
+  });
+
+  it('%D 길이가 %K보다 짧거나 같음', () => {
+    const prices = Array.from({ length: 30 }, (_, i) => 100 + i);
+    const candles = makeCandles(prices);
+    const result = calculateStochastic(candles, { kPeriod: 5, dPeriod: 3, smooth: 3 });
+
+    expect(result.d.length).toBeLessThanOrEqual(result.k.length);
+    expect(result.d.length).toBeGreaterThan(0);
+  });
+
+  it('지속 상승 시 %K가 높음', () => {
+    const prices = Array.from({ length: 20 }, (_, i) => 100 + i * 2);
+    const candles = makeCandles(prices);
+    const result = calculateStochastic(candles, { kPeriod: 5, dPeriod: 3, smooth: 1 });
+
+    const lastK = result.k[result.k.length - 1].value;
+    expect(lastK).toBeGreaterThan(80);
+  });
+});
+
+// =============================================
+// ATR (Average True Range)
+// =============================================
+describe('calculateATR', () => {
+  it('빈 배열에 대해 빈 결과를 반환', () => {
+    expect(calculateATR([])).toEqual([]);
+  });
+
+  it('데이터가 period+1 보다 적으면 빈 결과를 반환', () => {
+    const candles = makeCandles([10, 20, 30]);
+    expect(calculateATR(candles, { period: 14 })).toEqual([]);
+  });
+
+  it('ATR 값이 항상 양수', () => {
+    const data = makeCandlesHLC([
+      { high: 110, low: 90, close: 100 },
+      { high: 115, low: 95, close: 105 },
+      { high: 120, low: 100, close: 110 },
+      { high: 108, low: 88, close: 95 },
+      { high: 105, low: 85, close: 90 },
+      { high: 112, low: 92, close: 108 },
+    ]);
+    const result = calculateATR(data, { period: 3 });
+
+    expect(result.length).toBeGreaterThan(0);
+    result.forEach(r => {
+      expect(r.value).toBeGreaterThan(0);
+    });
+  });
+
+  it('변동 없는 데이터에서 ATR이 0에 가까움', () => {
+    // H=101, L=99, C=100 이면 TR=2 (H-L)
+    const data = makeCandlesHLC(
+      Array(10).fill({ high: 101, low: 99, close: 100 }),
+    );
+    const result = calculateATR(data, { period: 3 });
+
+    expect(result.length).toBeGreaterThan(0);
+    result.forEach(r => {
+      expect(r.value).toBeCloseTo(2, 1);
+    });
+  });
+
+  it('결과 길이가 올바름', () => {
+    const data = makeCandlesHLC(
+      Array.from({ length: 20 }, (_, i) => ({
+        high: 110 + i,
+        low: 90 + i,
+        close: 100 + i,
+      })),
+    );
+    const result = calculateATR(data, { period: 5 });
+    // TR starts from index 1, first ATR at index period, then continues
+    expect(result.length).toBe(20 - 5);
+  });
+});
+
+// =============================================
+// VWAP (Volume Weighted Average Price)
+// =============================================
+describe('calculateVWAP', () => {
+  it('빈 배열에 대해 빈 결과를 반환', () => {
+    expect(calculateVWAP([])).toEqual([]);
+  });
+
+  it('단일 캔들에서 VWAP = typical price', () => {
+    const candles = makeCandlesHLC([
+      { high: 110, low: 90, close: 100, volume: 1000 },
+    ]);
+    const result = calculateVWAP(candles);
+
+    expect(result).toHaveLength(1);
+    const tp = (110 + 90 + 100) / 3;
+    expect(result[0].value).toBeCloseTo(tp);
+  });
+
+  it('동일 가격/볼륨이면 VWAP이 일정', () => {
+    const candles = makeCandlesHLC(
+      Array(5).fill({ high: 110, low: 90, close: 100, volume: 1000 }),
+    );
+    const result = calculateVWAP(candles);
+
+    const tp = (110 + 90 + 100) / 3;
+    result.forEach(r => {
+      expect(r.value).toBeCloseTo(tp);
+    });
+  });
+
+  it('높은 볼륨 캔들 쪽으로 VWAP이 치우침', () => {
+    const candles = makeCandlesHLC([
+      { high: 110, low: 90, close: 100, volume: 100 },    // TP=100
+      { high: 210, low: 190, close: 200, volume: 10000 },  // TP=200
+    ]);
+    const result = calculateVWAP(candles);
+
+    // VWAP should be much closer to 200 than 100
+    expect(result[1].value).toBeGreaterThan(190);
+  });
+
+  it('결과 길이가 입력 길이와 동일', () => {
+    const candles = makeCandlesHLC(
+      Array.from({ length: 10 }, (_, i) => ({
+        high: 110 + i,
+        low: 90 + i,
+        close: 100 + i,
+        volume: 1000,
+      })),
+    );
+    const result = calculateVWAP(candles);
+    expect(result).toHaveLength(10);
+  });
+
+  it('time 값이 올바르게 매핑됨', () => {
+    const candles = makeCandlesHLC(
+      [
+        { high: 110, low: 90, close: 100, volume: 1000 },
+        { high: 120, low: 100, close: 110, volume: 2000 },
+      ],
+      5000,
+    );
+    const result = calculateVWAP(candles);
+    expect(result[0].time).toBe(5000);
+    expect(result[1].time).toBe(5060);
+  });
+});
+
+// =============================================
+// Williams %R
+// =============================================
+describe('calculateWilliamsR', () => {
+  it('빈 배열에 대해 빈 결과를 반환', () => {
+    expect(calculateWilliamsR([])).toEqual([]);
+  });
+
+  it('데이터가 period보다 적으면 빈 결과를 반환', () => {
+    const candles = makeCandles([10, 20, 30]);
+    expect(calculateWilliamsR(candles, { period: 14 })).toEqual([]);
+  });
+
+  it('Williams %R 값은 -100~0 범위', () => {
+    const prices = Array.from({ length: 30 }, (_, i) => 100 + Math.sin(i * 0.5) * 20);
+    const candles = makeCandles(prices);
+    const result = calculateWilliamsR(candles, { period: 5 });
+
+    result.forEach(r => {
+      expect(r.value).toBeGreaterThanOrEqual(-100);
+      expect(r.value).toBeLessThanOrEqual(0);
+    });
+  });
+
+  it('지속 상승 시 Williams %R이 0에 가까움', () => {
+    const prices = Array.from({ length: 20 }, (_, i) => 100 + i * 2);
+    const candles = makeCandles(prices);
+    const result = calculateWilliamsR(candles, { period: 5 });
+
+    const lastWR = result[result.length - 1].value;
+    expect(lastWR).toBeGreaterThan(-20);
+  });
+
+  it('지속 하락 시 Williams %R이 -100에 가까움', () => {
+    const prices = Array.from({ length: 20 }, (_, i) => 200 - i * 2);
+    const candles = makeCandles(prices);
+    const result = calculateWilliamsR(candles, { period: 5 });
+
+    const lastWR = result[result.length - 1].value;
+    expect(lastWR).toBeLessThan(-80);
+  });
+
+  it('결과 길이가 올바름 (data.length - period + 1)', () => {
+    const prices = Array.from({ length: 20 }, (_, i) => 100 + i);
+    const candles = makeCandles(prices);
+    const result = calculateWilliamsR(candles, { period: 5 });
+
+    expect(result).toHaveLength(16); // 20 - 5 + 1
   });
 });

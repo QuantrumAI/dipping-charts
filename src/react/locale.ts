@@ -36,6 +36,10 @@ export interface LocaleStrings {
   ind_bbands: string;
   ind_rsi: string;
   ind_macd: string;
+  ind_stochastic: string;
+  ind_atr: string;
+  ind_vwap: string;
+  ind_williamsR: string;
 
   // Indicator descriptions
   ind_sma_desc: string;
@@ -43,6 +47,10 @@ export interface LocaleStrings {
   ind_bbands_desc: string;
   ind_rsi_desc: string;
   ind_macd_desc: string;
+  ind_stochastic_desc: string;
+  ind_atr_desc: string;
+  ind_vwap_desc: string;
+  ind_williamsR_desc: string;
 
   // Indicator settings
   selectIndicator: string;
@@ -64,6 +72,13 @@ export interface LocaleStrings {
   bullish: string;
   bearish: string;
   colorPaletteTitle: string;
+
+  // Stochastic-specific
+  kPeriod: string;
+  dPeriod: string;
+  smooth: string;
+  kLine: string;
+  dLine: string;
 
   // Source options
   src_close: string;
@@ -114,12 +129,20 @@ const en: LocaleStrings = {
   ind_bbands: 'Bollinger Bands',
   ind_rsi: 'RSI',
   ind_macd: 'MACD',
+  ind_stochastic: 'Stochastic',
+  ind_atr: 'ATR',
+  ind_vwap: 'VWAP',
+  ind_williamsR: 'Williams %R',
 
   ind_sma_desc: 'Simple moving average over n periods',
   ind_ema_desc: 'Exponential moving average with recent price weighting',
   ind_bbands_desc: 'Volatility bands around a moving average',
   ind_rsi_desc: 'Relative Strength Index — overbought/oversold detection',
   ind_macd_desc: 'Moving Average Convergence Divergence — trend reversal signal',
+  ind_stochastic_desc: 'Stochastic Oscillator — momentum based on high/low range',
+  ind_atr_desc: 'Average True Range — measures price volatility',
+  ind_vwap_desc: 'Volume Weighted Average Price — intraday fair value',
+  ind_williamsR_desc: 'Williams %R — overbought/oversold momentum oscillator',
 
   selectIndicator: 'Select an indicator',
   enableIndicator: 'Check the box to enable this indicator',
@@ -140,6 +163,12 @@ const en: LocaleStrings = {
   bullish: 'Bullish',
   bearish: 'Bearish',
   colorPaletteTitle: 'Color',
+
+  kPeriod: '%K Period',
+  dPeriod: '%D Period',
+  smooth: 'Smooth',
+  kLine: '%K Line',
+  dLine: '%D Line',
 
   src_close: 'Close',
   src_open: 'Open',
@@ -187,12 +216,20 @@ const ko: LocaleStrings = {
   ind_bbands: '볼린저 밴드',
   ind_rsi: 'RSI',
   ind_macd: 'MACD',
+  ind_stochastic: '스토캐스틱',
+  ind_atr: 'ATR',
+  ind_vwap: 'VWAP',
+  ind_williamsR: '윌리엄스 %R',
 
   ind_sma_desc: '지난 n일 동안 주가 평균값을 이은 선',
   ind_ema_desc: '최근 가격에 더 큰 가중치를 둔 이동평균선',
   ind_bbands_desc: '가격 변동성을 나타내는 밴드',
   ind_rsi_desc: '상대강도지수 - 과매수/과매도 판단',
   ind_macd_desc: '이동평균 수렴확산 - 추세 전환 신호',
+  ind_stochastic_desc: '스토캐스틱 오실레이터 - 고저 범위 기반 모멘텀',
+  ind_atr_desc: '평균 진폭 - 가격 변동성 측정',
+  ind_vwap_desc: '거래량 가중 평균가 - 장중 적정 가격',
+  ind_williamsR_desc: '윌리엄스 %R - 과매수/과매도 모멘텀 오실레이터',
 
   selectIndicator: '지표를 선택하세요',
   enableIndicator: '체크박스를 클릭하여 지표를 활성화하세요',
@@ -213,6 +250,12 @@ const ko: LocaleStrings = {
   bullish: '양봉',
   bearish: '음봉',
   colorPaletteTitle: '컬러',
+
+  kPeriod: '%K 기간',
+  dPeriod: '%D 기간',
+  smooth: '스무딩',
+  kLine: '%K 라인',
+  dLine: '%D 라인',
 
   src_close: '종가',
   src_open: '시가',

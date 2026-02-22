@@ -10,6 +10,12 @@ export default defineConfig({
       insertTypesEntry: true,
     }),
   ],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['src/__tests__/setup.ts'],
+    css: true,
+  },
   build: {
     lib: {
       entry: {

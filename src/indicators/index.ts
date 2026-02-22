@@ -18,6 +18,14 @@ export { calculateMACD } from './macd';
 
 // 변동성 지표
 export { calculateBollingerBands } from './bollingerBands';
+export { calculateATR } from './atr';
+
+// 오실레이터
+export { calculateStochastic } from './stochastic';
+export { calculateWilliamsR } from './williamsR';
+
+// 거래량 지표
+export { calculateVWAP } from './vwap';
 
 // Forex 전용 지표
 export { calculateCurrencyStrength } from './currencyStrength';

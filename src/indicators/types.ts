@@ -76,3 +76,41 @@ export interface BollingerBandsResult {
   middle: IndicatorDataPoint[];
   lower: IndicatorDataPoint[];
 }
+
+/**
+ * Stochastic 옵션
+ */
+export interface StochasticOptions {
+  kPeriod: number;
+  dPeriod: number;
+  smooth: number;
+}
+
+/**
+ * Stochastic 결과
+ */
+export interface StochasticResult {
+  k: IndicatorDataPoint[];
+  d: IndicatorDataPoint[];
+}
+
+/**
+ * ATR 옵션
+ */
+export interface ATROptions {
+  period: number;
+}
+
+/**
+ * VWAP 옵션
+ */
+export interface VWAPOptions {
+  // VWAP uses typical price (H+L+C)/3 — no additional options needed
+}
+
+/**
+ * Williams %R 옵션
+ */
+export interface WilliamsROptions {
+  period: number;
+}
