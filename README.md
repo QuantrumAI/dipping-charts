@@ -1,13 +1,13 @@
 # dipping-charts
 
-Financial charting library with technical indicators and drawing tools, built on [TradingView Lightweight Charts](https://github.com/nickolasburr/tradingview-lightweight-charts).
+Financial charting library with technical indicators and drawing tools, built on [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/dipping-charts.svg)](https://www.npmjs.com/package/dipping-charts)
 
 ## Features
 
-- **5 Technical Indicators** — SMA, EMA, RSI, MACD, Bollinger Bands
+- **9 Technical Indicators** — SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ATR, VWAP, Williams %R
 - **6 Drawing Tools** — Trend Line, Horizontal, Vertical, Rectangle, Fibonacci, Text
 - **8 Timeframes** — 1m, 5m, 15m, 30m, 1H, D, W, M
 - **React Component** — Drop-in `<FullFeaturedChart />` with all features
@@ -162,5 +162,5 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
 [MIT](./LICENSE) — Copyright (c) 2025 [QuantrumAI](https://github.com/QuantrumAI)
 
-This library includes a custom build of [TradingView Lightweight Charts](https://github.com/nickolasburr/tradingview-lightweight-charts) (Apache-2.0).
+This library includes a custom build of [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts) (Apache-2.0).
 See [NOTICE](./NOTICE) for third-party license details.
