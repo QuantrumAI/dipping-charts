@@ -5,6 +5,8 @@ Financial charting library with technical indicators and drawing tools, built on
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/dipping-charts.svg)](https://www.npmjs.com/package/dipping-charts)
 
+**[Live Demo](https://quantrumai.github.io/dipping-charts/)**
+
 ## Features
 
 - **9 Technical Indicators** — SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ATR, VWAP, Williams %R
