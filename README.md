@@ -50,11 +50,15 @@ function App() {
 ### Indicators Only (No React)
 
 ```ts
-import { sma, ema, rsi, macd, bollingerBands } from 'dipping-charts/indicators';
+import {
+  calculateSMA, calculateEMA, calculateRSI,
+  calculateMACD, calculateBollingerBands,
+  calculateStochastic, calculateATR, calculateVWAP, calculateWilliamsR,
+} from 'dipping-charts/indicators';
 
-const closes = candles.map(c => c.close);
-const sma20 = sma(closes, 20);
-const rsi14 = rsi(closes, 14);
+const sma20 = calculateSMA(candles, { period: 20 });
+const rsi14 = calculateRSI(candles, { period: 14 });
+const stoch = calculateStochastic(candles, { kPeriod: 14, dPeriod: 3, smooth: 3 });
 ```
 
 ## API
@@ -96,14 +100,58 @@ interface CandleData {
 
 ### Indicators
 
-All indicator functions accept an array of numbers and return an array of the same length (padded with `NaN` for insufficient data).
+All indicator functions accept `CandleData[]` and return `IndicatorDataPoint[]` (or a multi-line result object).
+
+#### Moving Averages
 
 ```ts
-sma(data: number[], period: number): number[]
-ema(data: number[], period: number): number[]
-rsi(data: number[], period?: number): number[]  // default: 14
-macd(data: number[], fast?: number, slow?: number, signal?: number): MACDResult
-bollingerBands(data: number[], period?: number, stdDev?: number): BollingerBandsResult
+calculateSMA(candles, { period: 20 }): IndicatorDataPoint[]
+calculateEMA(candles, { period: 20 }): IndicatorDataPoint[]
+```
+
+#### Momentum / Oscillators
+
+```ts
+calculateRSI(candles, { period: 14 }): IndicatorDataPoint[]
+// Range: 0–100 | Overbought: 70, Oversold: 30
+
+calculateMACD(candles, {
+  fastPeriod: 12, slowPeriod: 26, signalPeriod: 9
+}): { macd, signal, histogram }  // each IndicatorDataPoint[]
+
+calculateStochastic(candles, {
+  kPeriod: 14, dPeriod: 3, smooth: 3
+}): { k, d }  // each IndicatorDataPoint[], range 0–100
+
+calculateWilliamsR(candles, { period: 14 }): IndicatorDataPoint[]
+// Range: -100–0 | Overbought: -20, Oversold: -80
+```
+
+#### Volatility
+
+```ts
+calculateBollingerBands(candles, {
+  period: 20, stdDev: 2
+}): { upper, middle, lower }  // each IndicatorDataPoint[]
+
+calculateATR(candles, { period: 14 }): IndicatorDataPoint[]
+// Average True Range with Wilder's smoothing (RMA)
+```
+
+#### Volume
+
+```ts
+calculateVWAP(candles): IndicatorDataPoint[]
+// Volume Weighted Average Price — cumulative TP×Vol / Vol
+```
+
+#### Result Types
+
+```ts
+interface IndicatorDataPoint {
+  time: number;   // Unix timestamp (seconds)
+  value: number;
+}
 ```
 
 ## Package Exports
