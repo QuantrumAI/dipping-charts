@@ -10,7 +10,23 @@ declare const LightweightCharts: any;
 export interface UseChartOptions {
   width?: number;
   height?: number;
+  theme?: 'light' | 'dark';
 }
+
+const CHART_THEMES = {
+  light: {
+    background: '#ffffff',
+    textColor: '#333',
+    gridColor: '#f0f0f0',
+    borderColor: '#cccccc',
+  },
+  dark: {
+    background: '#1c1c22',
+    textColor: '#9a9ba1',
+    gridColor: '#2a2a34',
+    borderColor: '#2e2e38',
+  },
+} as const;
 
 export interface UseChartReturn {
   chartRef: React.RefObject<HTMLDivElement | null>;
@@ -62,25 +78,27 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
     const width = options.width || chartRef.current.clientWidth;
     const height = options.height || 600;
 
+    const colors = CHART_THEMES[options.theme || 'light'];
+
     const chartInstance = createChart(chartRef.current, {
       width,
       height,
       layout: {
-        background: { color: '#ffffff' },
-        textColor: '#333',
+        background: { color: colors.background },
+        textColor: colors.textColor,
       },
       grid: {
-        vertLines: { color: '#f0f0f0' },
-        horzLines: { color: '#f0f0f0' },
+        vertLines: { color: colors.gridColor },
+        horzLines: { color: colors.gridColor },
       },
       crosshair: {
         mode: 0,
       },
       rightPriceScale: {
-        borderColor: '#cccccc',
+        borderColor: colors.borderColor,
       },
       timeScale: {
-        borderColor: '#cccccc',
+        borderColor: colors.borderColor,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -565,6 +583,32 @@ export function useChart(options: UseChartOptions = {}): UseChartReturn {
       }
     }
   };
+
+  // 테마 변경 시 차트 옵션 업데이트
+  useEffect(() => {
+    if (!chartInstanceRef.current || isDestroyedRef.current) return;
+    const colors = CHART_THEMES[options.theme || 'light'];
+    try {
+      chartInstanceRef.current.applyOptions({
+        layout: {
+          background: { color: colors.background },
+          textColor: colors.textColor,
+        },
+        grid: {
+          vertLines: { color: colors.gridColor },
+          horzLines: { color: colors.gridColor },
+        },
+        rightPriceScale: {
+          borderColor: colors.borderColor,
+        },
+        timeScale: {
+          borderColor: colors.borderColor,
+        },
+      });
+    } catch {
+      // 차트가 이미 파괴된 경우 무시
+    }
+  }, [options.theme]);
 
   return {
     chartRef,

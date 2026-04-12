@@ -103,9 +103,14 @@ export interface PriceLine {
   axisLabelVisible?: boolean;
 }
 
+export type ChartTheme = 'light' | 'dark';
+
 export interface FullFeaturedChartProps {
   /** UI language. Defaults to 'en'. */
   locale?: Locale;
+
+  /** Color theme. Defaults to 'light'. */
+  theme?: ChartTheme;
 
   // 데이터
   data?: CandleData[];

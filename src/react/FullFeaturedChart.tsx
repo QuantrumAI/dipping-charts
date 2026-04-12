@@ -75,6 +75,7 @@ function clampToViewport(x: number, y: number, menuWidth = 280, menuHeight = 50)
 
 export function FullFeaturedChart({
   locale: localeProp = 'en',
+  theme = 'light',
   data,
   width,
   height = 600,
@@ -128,7 +129,7 @@ export function FullFeaturedChart({
   const [selectedIndicator, setSelectedIndicator] = useState<IndicatorType | null>(null);
   const [macdColors, setMacdColors] = useState(restoredMacdColors);
 
-  const { chartRef, chart, candleSeries, volumeSeries, setData: setChartData } = useChart({ width, height });
+  const { chartRef, chart, candleSeries, volumeSeries, setData: setChartData } = useChart({ width, height, theme });
   const { applyIndicators } = useIndicators(chart, candleData);
 
   // 볼륨 시리즈 표시/숨김
@@ -573,7 +574,7 @@ export function FullFeaturedChart({
 
   return (
     <div
-      className={`container ${className}`}
+      className={`container ${theme === 'dark' ? 'dark' : ''} ${className}`}
       ref={containerRef}
       style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
     >
